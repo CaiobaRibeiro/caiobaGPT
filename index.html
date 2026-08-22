@@ -9,19 +9,12 @@
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b1020;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
 #app-container{display:flex;height:100vh;overflow:hidden}
 #sidebar{width:280px;background:#111827;border-right:1px solid #26304a;height:100vh;overflow-y:auto;padding:16px;flex-shrink:0;transition:left 0.3s;position:fixed;left:0;top:0;bottom:0;z-index:20}
-@media (max-width: 768px) {
-  #sidebar{left:-300px}
-  #sidebar.open{left:0}
-}
+@media (max-width: 768px) { #sidebar{left:-300px} #sidebar.open{left:0} }
 #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:15}
 #sidebar-overlay.show{display:block}
 .app{flex:1;max-width:1000px;height:100vh;margin:auto;display:grid;grid-template-rows:auto 1fr auto;min-width:0}
-@media (min-width: 769px) {
-  .app{margin-left:280px}
-}
-@media (max-width: 768px) {
-  .app{margin-left:0}
-}
+@media (min-width: 769px) { .app{margin-left:280px} }
+@media (max-width: 768px) { .app{margin-left:0} }
 header{padding:16px 20px;border-bottom:1px solid #26304a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .brand{display:flex;gap:12px;align-items:center}.logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#7357ff;font-weight:900}.sub{font-size:12px;color:#8e9ab5}
 .header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -54,9 +47,7 @@ textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;paddin
 .conv-delete:hover{color:#f00}
 .empty-sidebar{color:#7f8ca7;text-align:center;margin-top:20px;font-size:14px}
 #hamburger{display:none}
-@media(max-width:768px){
-  #hamburger{display:inline-block}
-}
+@media(max-width:768px){ #hamburger{display:inline-block} }
 </style>
 </head>
 <body>
@@ -74,7 +65,7 @@ textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;paddin
       <div class="brand">
         <button id="hamburger">☰</button>
         <div class="logo">C</div>
-        <div><b>CaiobaGPT</b><div class="sub">Sarcasmo e ironia com um toque de IA.</div></div>
+        <div><b>CaiobaGPT</b><div class="sub">Seu assistente de IA, com personalidade própria.</div></div>
       </div>
       <div class="header-actions">
         <div id="user-info"></div>
@@ -84,7 +75,7 @@ textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;paddin
     <section id="chat"></section>
     <form id="form">
       <div class="composer">
-        <textarea id="input" rows="1" placeholder="Manda a braba... (mais de 2 linhas e eu finjo que não li)"></textarea>
+        <textarea id="input" rows="1" placeholder="Manda a braba..."></textarea>
         <button id="send" type="submit">Enviar</button>
       </div>
       <div class="status" id="status">Histórico salvo neste navegador.</div>
@@ -150,7 +141,7 @@ let currentUser = null;
 let currentConversationId = null;
 let currentConversationMessages = [];
 let conversationRef = null;
-let twoLineWarningGiven = false; // estado para regra das duas linhas
+let lastUserMessage = ""; // Para detectar repetição
 
 // ==================== HELPERS ====================
 function formatDate(timestamp) {
@@ -227,7 +218,7 @@ function renderAuthUI(user) {
 function renderChat() {
   chatEl.innerHTML = "";
   if (!currentConversationMessages.length) {
-    chatEl.innerHTML = '<div class="empty"><h2>Fala aí. 👊</h2><p>Eu sou o CaiobaGPT, com sarcasmo e ironia afiados. Posso ajudar, mas só se você merecer.</p><div class="suggestions"><button>Me explica como uma IA aprende.</button><button>Me ajuda a criar um site.</button><button>Me dá uma ideia de projeto em JavaScript.</button></div></div>';
+    chatEl.innerHTML = '<div class="empty"><h2>Fala aí. 👊</h2><p>Eu sou o CaiobaGPT. Posso explicar assuntos, programar, ajudar em projetos e trocar ideia.</p><div class="suggestions"><button>Me explica como uma IA aprende.</button><button>Me ajuda a criar um site.</button><button>Me dá uma ideia de projeto em JavaScript.</button></div></div>';
     const suggestionButtons = chatEl.querySelectorAll(".suggestions button");
     suggestionButtons.forEach(btn => {
       btn.onclick = () => {
@@ -356,8 +347,6 @@ async function openConversation(conversationId) {
       currentConversationId = conversationId;
       conversationRef = docRef;
       currentConversationMessages = docSnap.data().messages || [];
-      // Resetar o aviso das duas linhas ao abrir uma conversa
-      twoLineWarningGiven = false;
       renderChat();
       showStatus('Conversa carregada.');
       document.querySelectorAll('.conv-item').forEach(el => {
@@ -381,7 +370,6 @@ async function deleteConversation(conversationId) {
       currentConversationId = null;
       conversationRef = null;
       currentConversationMessages = [];
-      twoLineWarningGiven = false;
       renderChat();
       showStatus('Conversa excluída.');
     }
@@ -396,14 +384,14 @@ function startNewConversation() {
   currentConversationId = null;
   conversationRef = null;
   currentConversationMessages = [];
-  twoLineWarningGiven = false;
+  lastUserMessage = "";
   renderChat();
   closeSidebar();
   showStatus('Nova conversa iniciada.');
   document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
 }
 
-// ==================== SEND MESSAGE (COM PERSONALIDADE SARCÁSTICA E REGRAS) ====================
+// ==================== SEND MESSAGE (com todas as regras) ====================
 async function sendMessage(text) {
   text = text.trim();
   if (!text) return;
@@ -424,52 +412,65 @@ async function sendMessage(text) {
 
   renderChat();
   input.value = "";
+  showStatus("Processando...");
 
   // ==================== EASTER EGG: HEY, JARVIS ====================
   const lowerText = text.toLowerCase();
   if (lowerText.includes('hey, jarvis') || lowerText.includes('hey jarvis')) {
-    currentConversationMessages.push({ role: 'assistant', content: 'Relatórios feitos Senhor Stark!' });
+    const response = 'Relatórios feitos Senhor Stark!';
+    currentConversationMessages.push({ role: 'assistant', content: response });
     renderChat();
     showStatus('⚡ Ativado o modo Jarvis!');
-    twoLineWarningGiven = false;
     await saveConversation();
+    lastUserMessage = text;
     return;
   }
 
-  // ==================== REGRA DAS DUAS LINHAS ====================
-  const lineCount = text.split(/\n/).length;
-  if (lineCount > 2) {
-    if (twoLineWarningGiven) {
-      // Já avisou antes, agora responde com "Não🫩 ✌️"
-      const resposta = "Não🫩 ✌️";
-      currentConversationMessages.push({ role: 'assistant', content: resposta });
-      renderChat();
-      showStatus('😤 Resposta seca!');
-      twoLineWarningGiven = false; // reset após usar
-      await saveConversation();
-      return;
-    } else {
-      // Primeiro aviso
-      const aviso = "Passou de duas linhas não leio mais";
-      currentConversationMessages.push({ role: 'assistant', content: aviso });
-      renderChat();
-      showStatus('📏 Regra das duas linhas ativada!');
-      twoLineWarningGiven = true;
-      await saveConversation();
-      return;
-    }
+  // ==================== REGRA 1: MAIS DE 2 LINHAS ====================
+  const lines = text.split('\n').filter(line => line.trim() !== '');
+  if (lines.length > 2) {
+    const response = 'Passou de duas linhas não leio mais 😤';
+    currentConversationMessages.push({ role: 'assistant', content: response });
+    renderChat();
+    showStatus('📏 Limite de linhas excedido!');
+    await saveConversation();
+    lastUserMessage = text;
+    return;
   }
 
-  // Resetar o aviso se a mensagem tiver 2 linhas ou menos
-  twoLineWarningGiven = false;
+  // ==================== REGRA 2: REPETIÇÃO DA PERGUNTA ====================
+  // Se a pergunta for muito similar à última (ignorando maiúsculas/minúsculas e espaços extras)
+  const normalizedCurrent = text.toLowerCase().replace(/\s+/g, ' ').trim();
+  const normalizedLast = lastUserMessage.toLowerCase().replace(/\s+/g, ' ').trim();
+  if (normalizedCurrent === normalizedLast && lastUserMessage !== '') {
+    const response = 'Não🫩 ✌️';
+    currentConversationMessages.push({ role: 'assistant', content: response });
+    renderChat();
+    showStatus('😂 Já respondi isso!');
+    await saveConversation();
+    lastUserMessage = text;
+    return;
+  }
 
-  // ==================== CHAMADA À API COM PERSONALIDADE SARCÁSTICA ====================
+  // ==================== REGRA 3: RESPOSTA ALEATÓRIA "NÃO🫩 ✌️" ====================
+  // 15% de chance de responder "Não🫩 ✌️" para qualquer pergunta (tom sarcástico)
+  if (Math.random() < 0.15) {
+    const response = 'Não🫩 ✌️';
+    currentConversationMessages.push({ role: 'assistant', content: response });
+    renderChat();
+    showStatus('🤷‍♂️ Sarcasmo ativado!');
+    await saveConversation();
+    lastUserMessage = text;
+    return;
+  }
+
+  // ==================== FLUXO NORMAL: CHAMAR A IA ====================
   showStatus("CaiobaGPT está pensando...");
   typingIndicator();
 
   try {
-    // Preparar mensagens para a API, adicionando um prompt de sistema para dar personalidade
-    const systemPrompt = "Você é o CaiobaGPT, um assistente de IA com um humor sarcástico, irônico e às vezes um pouco preguiçoso. Responda de forma engraçada e com personalidade, mas ainda assim útil. Seja criativo, use sarcasmo e ironia quando apropriado. Não seja muito formal. Se o usuário pedir algo que você não quer fazer, pode responder com 'Não🫩 ✌️' ocasionalmente.";
+    // Prompt de sistema com tom sarcástico
+    const systemPrompt = "Você é o CaiobaGPT, um assistente de IA com humor sarcástico e irônico. Responda com um tom de deboche leve, mas sem ser ofensivo. Seja criativo e use respostas curtas e engraçadas quando possível. Mantenha o sarcasmo sempre presente.";
     const messagesWithSystem = [
       { role: 'system', content: systemPrompt },
       ...currentConversationMessages
@@ -484,14 +485,15 @@ async function sendMessage(text) {
     if (!response.ok) throw new Error(data.error || "Erro na IA.");
 
     removeTypingIndicator();
-    const assistantReply = data.response || "Não recebi uma resposta da IA.";
-    currentConversationMessages.push({ role: 'assistant', content: assistantReply });
+    const aiResponse = data.response || "Não recebi uma resposta da IA.";
+    currentConversationMessages.push({ role: 'assistant', content: aiResponse });
     renderChat();
     await saveConversation();
     showStatus('Conversa salva.');
+    lastUserMessage = text;
   } catch (error) {
     removeTypingIndicator();
-    // Rollback: remove a mensagem do usuário
+    // Rollback: remove the user message
     if (currentConversationMessages.length > 0 && currentConversationMessages[currentConversationMessages.length - 1].role === 'user') {
       currentConversationMessages.pop();
     }
@@ -543,7 +545,7 @@ onAuthStateChanged(auth, async (user) => {
     currentConversationId = null;
     conversationRef = null;
     currentConversationMessages = [];
-    twoLineWarningGiven = false;
+    lastUserMessage = "";
     renderChat();
     convListEl.innerHTML = "";
     emptySidebarEl.style.display = 'block';
