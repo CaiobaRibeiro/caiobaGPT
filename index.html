@@ -74,7 +74,7 @@ textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;paddin
       <div class="brand">
         <button id="hamburger">☰</button>
         <div class="logo">C</div>
-        <div><b>CaiobaGPT</b><div class="sub">Seu assistente de IA, com personalidade própria.</div></div>
+        <div><b>CaiobaGPT</b><div class="sub">Sarcasmo e ironia com um toque de IA.</div></div>
       </div>
       <div class="header-actions">
         <div id="user-info"></div>
@@ -84,7 +84,7 @@ textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;paddin
     <section id="chat"></section>
     <form id="form">
       <div class="composer">
-        <textarea id="input" rows="1" placeholder="Manda a braba..."></textarea>
+        <textarea id="input" rows="1" placeholder="Manda a braba... (mais de 2 linhas e eu finjo que não li)"></textarea>
         <button id="send" type="submit">Enviar</button>
       </div>
       <div class="status" id="status">Histórico salvo neste navegador.</div>
@@ -150,6 +150,7 @@ let currentUser = null;
 let currentConversationId = null;
 let currentConversationMessages = [];
 let conversationRef = null;
+let twoLineWarningGiven = false; // estado para regra das duas linhas
 
 // ==================== HELPERS ====================
 function formatDate(timestamp) {
@@ -226,7 +227,7 @@ function renderAuthUI(user) {
 function renderChat() {
   chatEl.innerHTML = "";
   if (!currentConversationMessages.length) {
-    chatEl.innerHTML = '<div class="empty"><h2>Fala aí. 👊</h2><p>Eu sou o CaiobaGPT. Posso explicar assuntos, programar, ajudar em projetos e trocar ideia.</p><div class="suggestions"><button>Me explica como uma IA aprende.</button><button>Me ajuda a criar um site.</button><button>Me dá uma ideia de projeto em JavaScript.</button></div></div>';
+    chatEl.innerHTML = '<div class="empty"><h2>Fala aí. 👊</h2><p>Eu sou o CaiobaGPT, com sarcasmo e ironia afiados. Posso ajudar, mas só se você merecer.</p><div class="suggestions"><button>Me explica como uma IA aprende.</button><button>Me ajuda a criar um site.</button><button>Me dá uma ideia de projeto em JavaScript.</button></div></div>';
     const suggestionButtons = chatEl.querySelectorAll(".suggestions button");
     suggestionButtons.forEach(btn => {
       btn.onclick = () => {
@@ -355,6 +356,8 @@ async function openConversation(conversationId) {
       currentConversationId = conversationId;
       conversationRef = docRef;
       currentConversationMessages = docSnap.data().messages || [];
+      // Resetar o aviso das duas linhas ao abrir uma conversa
+      twoLineWarningGiven = false;
       renderChat();
       showStatus('Conversa carregada.');
       document.querySelectorAll('.conv-item').forEach(el => {
@@ -378,6 +381,7 @@ async function deleteConversation(conversationId) {
       currentConversationId = null;
       conversationRef = null;
       currentConversationMessages = [];
+      twoLineWarningGiven = false;
       renderChat();
       showStatus('Conversa excluída.');
     }
@@ -392,13 +396,14 @@ function startNewConversation() {
   currentConversationId = null;
   conversationRef = null;
   currentConversationMessages = [];
+  twoLineWarningGiven = false;
   renderChat();
   closeSidebar();
   showStatus('Nova conversa iniciada.');
   document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
 }
 
-// ==================== SEND MESSAGE (com easter egg "Hey, Jarvis") ====================
+// ==================== SEND MESSAGE (COM PERSONALIDADE SARCÁSTICA E REGRAS) ====================
 async function sendMessage(text) {
   text = text.trim();
   if (!text) return;
@@ -423,35 +428,70 @@ async function sendMessage(text) {
   // ==================== EASTER EGG: HEY, JARVIS ====================
   const lowerText = text.toLowerCase();
   if (lowerText.includes('hey, jarvis') || lowerText.includes('hey jarvis')) {
-    // Resposta local sem chamar a API
     currentConversationMessages.push({ role: 'assistant', content: 'Relatórios feitos Senhor Stark!' });
     renderChat();
     showStatus('⚡ Ativado o modo Jarvis!');
+    twoLineWarningGiven = false;
     await saveConversation();
     return;
   }
 
-  // Fluxo normal: chamar a API
+  // ==================== REGRA DAS DUAS LINHAS ====================
+  const lineCount = text.split(/\n/).length;
+  if (lineCount > 2) {
+    if (twoLineWarningGiven) {
+      // Já avisou antes, agora responde com "Não🫩 ✌️"
+      const resposta = "Não🫩 ✌️";
+      currentConversationMessages.push({ role: 'assistant', content: resposta });
+      renderChat();
+      showStatus('😤 Resposta seca!');
+      twoLineWarningGiven = false; // reset após usar
+      await saveConversation();
+      return;
+    } else {
+      // Primeiro aviso
+      const aviso = "Passou de duas linhas não leio mais";
+      currentConversationMessages.push({ role: 'assistant', content: aviso });
+      renderChat();
+      showStatus('📏 Regra das duas linhas ativada!');
+      twoLineWarningGiven = true;
+      await saveConversation();
+      return;
+    }
+  }
+
+  // Resetar o aviso se a mensagem tiver 2 linhas ou menos
+  twoLineWarningGiven = false;
+
+  // ==================== CHAMADA À API COM PERSONALIDADE SARCÁSTICA ====================
   showStatus("CaiobaGPT está pensando...");
   typingIndicator();
 
   try {
+    // Preparar mensagens para a API, adicionando um prompt de sistema para dar personalidade
+    const systemPrompt = "Você é o CaiobaGPT, um assistente de IA com um humor sarcástico, irônico e às vezes um pouco preguiçoso. Responda de forma engraçada e com personalidade, mas ainda assim útil. Seja criativo, use sarcasmo e ironia quando apropriado. Não seja muito formal. Se o usuário pedir algo que você não quer fazer, pode responder com 'Não🫩 ✌️' ocasionalmente.";
+    const messagesWithSystem = [
+      { role: 'system', content: systemPrompt },
+      ...currentConversationMessages
+    ];
+
     const response = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: currentConversationMessages })
+      body: JSON.stringify({ messages: messagesWithSystem })
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Erro na IA.");
 
     removeTypingIndicator();
-    currentConversationMessages.push({ role: 'assistant', content: data.response || "Não recebi uma resposta da IA." });
+    const assistantReply = data.response || "Não recebi uma resposta da IA.";
+    currentConversationMessages.push({ role: 'assistant', content: assistantReply });
     renderChat();
     await saveConversation();
     showStatus('Conversa salva.');
   } catch (error) {
     removeTypingIndicator();
-    // Rollback: remove the user message
+    // Rollback: remove a mensagem do usuário
     if (currentConversationMessages.length > 0 && currentConversationMessages[currentConversationMessages.length - 1].role === 'user') {
       currentConversationMessages.pop();
     }
@@ -503,6 +543,7 @@ onAuthStateChanged(auth, async (user) => {
     currentConversationId = null;
     conversationRef = null;
     currentConversationMessages = [];
+    twoLineWarningGiven = false;
     renderChat();
     convListEl.innerHTML = "";
     emptySidebarEl.style.display = 'block';
