@@ -141,7 +141,8 @@ let currentUser = null;
 let currentConversationId = null;
 let currentConversationMessages = [];
 let conversationRef = null;
-let lastUserMessage = ""; // Para detectar repetição
+let lastUserMessage = "";
+let lastAssistantResponse = ""; // Guarda a última resposta da IA para detectar "Não"
 
 // ==================== HELPERS ====================
 function formatDate(timestamp) {
@@ -347,6 +348,13 @@ async function openConversation(conversationId) {
       currentConversationId = conversationId;
       conversationRef = docRef;
       currentConversationMessages = docSnap.data().messages || [];
+      // Atualiza a última resposta da IA se existir
+      for (let i = currentConversationMessages.length - 1; i >= 0; i--) {
+        if (currentConversationMessages[i].role === 'assistant') {
+          lastAssistantResponse = currentConversationMessages[i].content;
+          break;
+        }
+      }
       renderChat();
       showStatus('Conversa carregada.');
       document.querySelectorAll('.conv-item').forEach(el => {
@@ -370,6 +378,7 @@ async function deleteConversation(conversationId) {
       currentConversationId = null;
       conversationRef = null;
       currentConversationMessages = [];
+      lastAssistantResponse = "";
       renderChat();
       showStatus('Conversa excluída.');
     }
@@ -385,6 +394,7 @@ function startNewConversation() {
   conversationRef = null;
   currentConversationMessages = [];
   lastUserMessage = "";
+  lastAssistantResponse = "";
   renderChat();
   closeSidebar();
   showStatus('Nova conversa iniciada.');
@@ -402,7 +412,31 @@ async function sendMessage(text) {
     return;
   }
 
-  // Adiciona mensagem do usuário
+  // ==================== REGRA: PERGUNTAR O MOTIVO DO "NÃO" ====================
+  const lowerText = text.toLowerCase();
+  const isAskingWhy = lowerText.includes('por que') || lowerText.includes('porque') || lowerText.includes('motivo') || lowerText.includes('razão');
+  const lastResponseIsNo = lastAssistantResponse.includes('Não🫩 ✌️') || lastAssistantResponse.includes('Passou de duas linhas não leio mais');
+
+  if (isAskingWhy && lastResponseIsNo) {
+    const response = 'Porque eu quero son🥀?';
+    // Adiciona a pergunta do usuário
+    if (!currentConversationId) {
+      conversationRef = doc(collection(db, 'users', currentUser.uid, 'conversations'));
+      currentConversationMessages = [{ role: 'user', content: text }];
+    } else {
+      currentConversationMessages.push({ role: 'user', content: text });
+    }
+    currentConversationMessages.push({ role: 'assistant', content: response });
+    lastAssistantResponse = response;
+    renderChat();
+    input.value = "";
+    showStatus('💀 Modo "Son" ativado!');
+    await saveConversation();
+    lastUserMessage = text;
+    return;
+  }
+
+  // Adiciona mensagem do usuário (se não entrou na regra acima)
   if (!currentConversationId) {
     conversationRef = doc(collection(db, 'users', currentUser.uid, 'conversations'));
     currentConversationMessages = [{ role: 'user', content: text }];
@@ -415,10 +449,10 @@ async function sendMessage(text) {
   showStatus("Processando...");
 
   // ==================== EASTER EGG: HEY, JARVIS ====================
-  const lowerText = text.toLowerCase();
   if (lowerText.includes('hey, jarvis') || lowerText.includes('hey jarvis')) {
     const response = 'Relatórios feitos Senhor Stark!';
     currentConversationMessages.push({ role: 'assistant', content: response });
+    lastAssistantResponse = response;
     renderChat();
     showStatus('⚡ Ativado o modo Jarvis!');
     await saveConversation();
@@ -431,6 +465,7 @@ async function sendMessage(text) {
   if (lines.length > 2) {
     const response = 'Passou de duas linhas não leio mais 😤';
     currentConversationMessages.push({ role: 'assistant', content: response });
+    lastAssistantResponse = response;
     renderChat();
     showStatus('📏 Limite de linhas excedido!');
     await saveConversation();
@@ -439,12 +474,12 @@ async function sendMessage(text) {
   }
 
   // ==================== REGRA 2: REPETIÇÃO DA PERGUNTA ====================
-  // Se a pergunta for muito similar à última (ignorando maiúsculas/minúsculas e espaços extras)
   const normalizedCurrent = text.toLowerCase().replace(/\s+/g, ' ').trim();
   const normalizedLast = lastUserMessage.toLowerCase().replace(/\s+/g, ' ').trim();
   if (normalizedCurrent === normalizedLast && lastUserMessage !== '') {
     const response = 'Não🫩 ✌️';
     currentConversationMessages.push({ role: 'assistant', content: response });
+    lastAssistantResponse = response;
     renderChat();
     showStatus('😂 Já respondi isso!');
     await saveConversation();
@@ -453,10 +488,10 @@ async function sendMessage(text) {
   }
 
   // ==================== REGRA 3: RESPOSTA ALEATÓRIA "NÃO🫩 ✌️" ====================
-  // 15% de chance de responder "Não🫩 ✌️" para qualquer pergunta (tom sarcástico)
   if (Math.random() < 0.15) {
     const response = 'Não🫩 ✌️';
     currentConversationMessages.push({ role: 'assistant', content: response });
+    lastAssistantResponse = response;
     renderChat();
     showStatus('🤷‍♂️ Sarcasmo ativado!');
     await saveConversation();
@@ -469,7 +504,6 @@ async function sendMessage(text) {
   typingIndicator();
 
   try {
-    // Prompt de sistema com tom sarcástico
     const systemPrompt = "Você é o CaiobaGPT, um assistente de IA com humor sarcástico e irônico. Responda com um tom de deboche leve, mas sem ser ofensivo. Seja criativo e use respostas curtas e engraçadas quando possível. Mantenha o sarcasmo sempre presente.";
     const messagesWithSystem = [
       { role: 'system', content: systemPrompt },
@@ -487,13 +521,13 @@ async function sendMessage(text) {
     removeTypingIndicator();
     const aiResponse = data.response || "Não recebi uma resposta da IA.";
     currentConversationMessages.push({ role: 'assistant', content: aiResponse });
+    lastAssistantResponse = aiResponse;
     renderChat();
     await saveConversation();
     showStatus('Conversa salva.');
     lastUserMessage = text;
   } catch (error) {
     removeTypingIndicator();
-    // Rollback: remove the user message
     if (currentConversationMessages.length > 0 && currentConversationMessages[currentConversationMessages.length - 1].role === 'user') {
       currentConversationMessages.pop();
     }
@@ -546,6 +580,7 @@ onAuthStateChanged(auth, async (user) => {
     conversationRef = null;
     currentConversationMessages = [];
     lastUserMessage = "";
+    lastAssistantResponse = "";
     renderChat();
     convListEl.innerHTML = "";
     emptySidebarEl.style.display = 'block';
