@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CaiobaGPT</title>
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b1020;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+.app{max-width:1000px;height:100vh;margin:auto;display:grid;grid-template-rows:auto 1fr auto}
+header{padding:16px 20px;border-bottom:1px solid #26304a;display:flex;justify-content:space-between;align-items:center}
+.brand{display:flex;gap:12px;align-items:center}.logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#7357ff;font-weight:900}.sub{font-size:12px;color:#8e9ab5}
+button{cursor:pointer;color:#fff;background:#19233b;border:1px solid #2b3857;border-radius:10px;padding:9px 12px}
+#chat{overflow:auto;padding:24px 14px}.empty{text-align:center;margin:12vh auto;max-width:650px}.empty h2{font-size:42px;margin:0 0 10px}.empty p{color:#9aa7c0}
+.suggestions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:20px}.message{max-width:800px;margin:16px auto;display:flex;gap:10px}.message.user{justify-content:flex-end}
+.avatar{width:32px;height:32px;flex:none;border-radius:9px;background:#19233b;display:grid;place-items:center;font-weight:800}
+.bubble{max-width:80%;padding:12px 15px;border:1px solid #2a3550;background:#152039;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+.user .bubble{background:#26385f}.user .avatar{order:2}form{padding:12px 14px 18px;border-top:1px solid #26304a}
+.composer{max-width:800px;margin:auto;display:flex;gap:8px;padding:8px;background:#121a2d;border:1px solid #2a3550;border-radius:16px}
+textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;padding:10px;font:inherit;max-height:150px}#send{background:#7357ff;font-weight:800}
+.status{max-width:800px;margin:6px auto 0;color:#7f8ca7;font-size:11px;text-align:right}
+.typing span{display:inline-block;width:6px;height:6px;border-radius:50%;background:#9aa7c0;margin:0 2px;animation:b .8s infinite}.typing span:nth-child(2){animation-delay:.12s}.typing span:nth-child(3){animation-delay:.24s}
+@keyframes b{50%{transform:translateY(-4px);opacity:.4}}@media(max-width:600px){.bubble{max-width:88%}.empty h2{font-size:34px}}
+</style>
+</head>
+<body>
+<main class="app">
+<header><div class="brand"><div class="logo">C</div><div><b>CaiobaGPT</b><div class="sub">Seu assistente de IA, com personalidade própria.</div></div></div><button id="clear">Limpar</button></header>
+<section id="chat"></section>
+<form id="form"><div class="composer"><textarea id="input" rows="1" placeholder="Manda a braba..."></textarea><button id="send" type="submit">Enviar</button></div><div class="status" id="status">Histórico salvo neste navegador.</div></form>
+</main>
+<script>
+const WORKER_URL="https://caiobagpt.caiosartor01.workers.dev";
+const KEY="caiobagpt_history_v1";
+const chat=document.querySelector("#chat"),form=document.querySelector("#form"),input=document.querySelector("#input"),status=document.querySelector("#status");
+let history=JSON.parse(localStorage.getItem(KEY)||"[]");
+function save(){localStorage.setItem(KEY,JSON.stringify(history))}
+function render(){
+ chat.innerHTML="";
+ if(!history.length){
+  chat.innerHTML='<div class="empty"><h2>Fala aí. 👊</h2><p>Eu sou o CaiobaGPT. Posso explicar assuntos, programar, ajudar em projetos e trocar ideia.</p><div class="suggestions"><button>Me explica como uma IA aprende.</button><button>Me ajuda a criar um site.</button><button>Me dá uma ideia de projeto em JavaScript.</button></div></div>';
+  chat.querySelectorAll(".suggestions button").forEach(btn=>btn.onclick=()=>{input.value=btn.textContent;input.focus()});return;
+ }
+ for(const m of history){
+  const row=document.createElement("div");row.className="message "+(m.role==="user"?"user":"assistant");
+  const avatar=document.createElement("div");avatar.className="avatar";avatar.textContent=m.role==="user"?"V":"C";
+  const bubble=document.createElement("div");bubble.className="bubble";bubble.textContent=m.content;
+  row.append(avatar,bubble);chat.append(row);
+ }
+ chat.scrollTop=chat.scrollHeight;
+}
+function typing(){const row=document.createElement("div");row.id="typing";row.className="message assistant";row.innerHTML='<div class="avatar">C</div><div class="bubble typing"><span></span><span></span><span></span></div>';chat.append(row);chat.scrollTop=chat.scrollHeight}
+async function send(text){
+ text=text.trim();if(!text)return;
+ history.push({role:"user",content:text});save();render();input.value="";status.textContent="CaiobaGPT está pensando...";typing();
+ try{
+  const response=await fetch(WORKER_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({messages:history})});
+  const data=await response.json();if(!response.ok)throw new Error(data.error||"Erro na IA.");
+  document.querySelector("#typing")?.remove();
+  history.push({role:"assistant",content:data.response||"Não recebi uma resposta da IA."});save();render();status.textContent="Histórico salvo neste navegador.";
+ }catch(error){
+  document.querySelector("#typing")?.remove();history.pop();save();render();status.textContent="Erro ao conectar com a IA.";alert("Não consegui falar com o CaiobaGPT: "+error.message);
+ }
+}
+form.onsubmit=e=>{e.preventDefault();send(input.value)};
+input.onkeydown=e=>{if(e.key==="Enter"&&!e.shiftKey){e.preventDefault();form.requestSubmit()}};
+document.querySelector("#clear").onclick=()=>{history=[];save();render();status.textContent="Histórico limpo."};
+render();
+</script>
+</body>
+</html>
