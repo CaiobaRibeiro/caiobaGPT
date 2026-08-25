@@ -8,12 +8,10 @@
     <style>
         *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b1020;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
         #app-container{display:flex;height:100vh;overflow:hidden}
-        /* Sidebar */
         #sidebar{width:300px;background:#111827;border-right:1px solid #26304a;height:100vh;overflow-y:auto;padding:16px;flex-shrink:0;transition:left 0.3s;position:fixed;left:0;top:0;bottom:0;z-index:20}
         #sidebar.closed{left:-320px}
         #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:15}
         #sidebar-overlay.show{display:block}
-        /* Main area */
         .app{flex:1;max-width:1000px;height:100vh;margin:auto;display:grid;grid-template-rows:auto 1fr auto;min-width:0}
         header{padding:16px 20px;border-bottom:1px solid #26304a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
         .brand{display:flex;gap:12px;align-items:center}.logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#7357ff;font-weight:900}.sub{font-size:12px;color:#8e9ab5}
@@ -30,12 +28,10 @@
         .status{max-width:800px;margin:6px auto 0;color:#7f8ca7;font-size:11px;text-align:right}
         .typing span{display:inline-block;width:6px;height:6px;border-radius:50%;background:#9aa7c0;margin:0 2px;animation:b .8s infinite}.typing span:nth-child(2){animation-delay:.12s}.typing span:nth-child(3){animation-delay:.24s}
         @keyframes b{50%{transform:translateY(-4px);opacity:.4}}
-        /* User info / auth */
         #user-info{display:flex;align-items:center;gap:8px}
         #user-info img{width:32px;height:32px;border-radius:50%;object-fit:cover}
         #user-name{font-weight:600;color:#fff}
         #auth-button,#logout-button{padding:8px 12px}
-        /* Sidebar content */
         #sidebar h3{margin:0 0 16px;font-size:18px;color:#fff}
         .new-conv-btn{width:100%;margin-bottom:24px;background:#7357ff;border:none;font-weight:600;padding:14px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
         .new-conv-btn:hover{background:#5f45e0}
@@ -57,7 +53,6 @@
         .rename-confirm,.rename-cancel{background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:4px 6px;border-radius:4px}
         .rename-confirm{color:#4caf50}
         .rename-cancel{color:#f88}
-        /* Configurações / Pronomes */
         .settings-section{margin-top:20px;padding-top:16px;border-top:1px solid #26304a}
         .settings-btn{background:none;border:1px solid #2b3857;color:#9aa7c0;font-size:13px;padding:8px 12px;border-radius:8px;cursor:pointer;width:100%;text-align:left}
         .settings-btn:hover{background:#1c2940;color:#fff}
@@ -66,7 +61,6 @@
         .settings-panel input{width:100%;background:#121a2d;border:1px solid #2b3857;color:#fff;border-radius:6px;padding:8px;margin-bottom:10px;font-size:14px}
         .settings-save{background:#7357ff;border:none;color:#fff;padding:8px 12px;border-radius:6px;cursor:pointer;width:100%}
         .settings-save:hover{background:#5f45e0}
-        /* Responsive */
         #hamburger{display:inline-block;background:none;border:none;color:#fff;font-size:24px;padding:4px;cursor:pointer}
         @media(max-width:768px){
             #sidebar.closed{left:-320px}
@@ -83,7 +77,6 @@
 
         <aside id="sidebar">
             <h3>CaiobaGPT</h3>
-            
             <button class="new-conv-btn" id="new-conv-btn">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
@@ -91,20 +84,17 @@
                 </svg>
                 Nova Conversa
             </button>
-            
             <p class="continue-text">Continuar conversando</p>
-            
             <ul class="conv-list" id="conv-list"></ul>
             <div class="empty-sidebar" id="empty-sidebar">Nenhuma conversa ainda.</div>
 
-            <!-- Seção de configurações -->
             <div class="settings-section">
                 <button class="settings-btn" id="settings-btn">⚙️ Configurações de pronomes</button>
                 <div class="settings-panel" id="settings-panel" style="display:none;">
-                    <label>Seu pronome (ex: ele, ela, elu)</label>
-                    <input type="text" id="user-pronoun" placeholder="Digite seu pronome">
-                    <label>Pronome do CaiobaGPT (ex: ele, ela, elu)</label>
-                    <input type="text" id="assistant-pronoun" placeholder="Digite o pronome da IA">
+                    <label>Como você quer ser referido(a) pelo CaiobaGPT?</label>
+                    <input type="text" id="user-pronoun" placeholder="Ex: senhor, senhora, você, meu caro...">
+                    <label>Como o CaiobaGPT deve se referir a si mesmo?</label>
+                    <input type="text" id="assistant-pronoun" placeholder="Ex: eu, este assistente, o CaiobaGPT...">
                     <button class="settings-save" id="save-pronouns">Salvar</button>
                 </div>
             </div>
@@ -134,28 +124,9 @@
     </div>
 
     <script type="module">
-        // ==================== FIREBASE INIT ====================
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import {
-            getAuth,
-            GoogleAuthProvider,
-            signInWithPopup,
-            onAuthStateChanged,
-            signOut
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import {
-            getFirestore,
-            doc,
-            collection,
-            setDoc,
-            updateDoc,
-            deleteDoc,
-            getDoc,
-            getDocs,
-            query,
-            orderBy,
-            serverTimestamp
-        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, collection, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBAiXd7T_FsYW260mtO3UYFpCsxJpn4Gco",
@@ -171,7 +142,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // ==================== DOM REFERENCES ====================
         const WORKER_URL = "https://caiobagpt.caiosartor01.workers.dev";
         const chatEl = document.querySelector("#chat");
         const form = document.querySelector("#form");
@@ -191,15 +161,13 @@
         const assistantPronounInput = document.querySelector("#assistant-pronoun");
         const savePronounsBtn = document.querySelector("#save-pronouns");
 
-        // ==================== STATE ====================
         let currentUser = null;
         let currentConversationId = null;
         let currentConversationMessages = [];
         let conversationRef = null;
         let isRenaming = false;
-        let settings = { userPronoun: '', assistantPronoun: '' }; // pronomes atuais
+        let settings = { userPronoun: '', assistantPronoun: '' };
 
-        // ==================== HELPERS ====================
         function formatDate(timestamp) {
             if (!timestamp) return "";
             const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
@@ -231,7 +199,6 @@
             sidebarOverlay.classList.remove('show');
         }
 
-        // ==================== AUTH ====================
         function renderAuthUI(user) {
             userInfoEl.innerHTML = "";
             if (user) {
@@ -275,10 +242,11 @@
             }
         }
 
-        // ==================== SETTINGS / PRONOUNS ====================
         async function loadSettings() {
             if (!currentUser) {
                 settings = { userPronoun: '', assistantPronoun: '' };
+                userPronounInput.value = '';
+                assistantPronounInput.value = '';
                 return;
             }
             const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'pronouns');
@@ -298,21 +266,24 @@
         }
 
         async function saveSettings() {
-            if (!currentUser) return;
+            if (!currentUser) {
+                showStatus('Você precisa estar logado para salvar pronomes.');
+                return;
+            }
             const userPronoun = userPronounInput.value.trim();
             const assistantPronoun = assistantPronounInput.value.trim();
             settings = { userPronoun, assistantPronoun };
             const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'pronouns');
             try {
                 await setDoc(settingsRef, settings);
-                showStatus('Pronomes salvos com sucesso.');
+                showStatus('Pronomes salvos com sucesso!');
+                console.log('Pronomes salvos:', settings);
             } catch (error) {
                 console.error('Erro ao salvar pronomes:', error);
-                showStatus('Erro ao salvar pronomes.');
+                showStatus('Erro ao salvar pronomes: ' + error.message);
             }
         }
 
-        // ==================== CHAT RENDERING ====================
         function renderChat() {
             chatEl.innerHTML = "";
             if (!currentConversationMessages.length) {
@@ -354,7 +325,6 @@
             document.querySelector("#typing")?.remove();
         }
 
-        // ==================== FIREBASE OPERATIONS ====================
         async function loadConversations() {
             if (!currentUser) {
                 convListEl.innerHTML = "";
@@ -429,49 +399,39 @@
         function startRename(conversationId, titleElement, currentTitle) {
             if (isRenaming) return;
             isRenaming = true;
-            
             const input = document.createElement('input');
             input.type = 'text';
             input.className = 'rename-input';
             input.value = currentTitle;
             input.placeholder = 'Novo título...';
-            
             const confirmBtn = document.createElement('button');
             confirmBtn.className = 'rename-confirm';
             confirmBtn.innerHTML = '✓';
             confirmBtn.title = 'Confirmar';
-            
             const cancelBtn = document.createElement('button');
             cancelBtn.className = 'rename-cancel';
             cancelBtn.innerHTML = '✕';
             cancelBtn.title = 'Cancelar';
-            
             const actionsContainer = document.createElement('div');
             actionsContainer.className = 'rename-actions';
             actionsContainer.append(confirmBtn, cancelBtn);
-            
             const parentContainer = titleElement.parentElement;
             parentContainer.replaceChild(input, titleElement);
             parentContainer.appendChild(actionsContainer);
-            
             input.focus();
             input.select();
-            
             const confirmRename = async () => {
                 const newTitle = input.value.trim() || currentTitle;
                 await renameConversation(conversationId, newTitle);
                 isRenaming = false;
                 await loadConversations();
             };
-            
             const cancelRename = () => {
                 isRenaming = false;
                 loadConversations();
             };
-            
             confirmBtn.onclick = confirmRename;
             cancelBtn.onclick = cancelRename;
-            
             input.onkeydown = (e) => {
                 if (e.key === 'Enter') confirmRename();
                 else if (e.key === 'Escape') cancelRename();
@@ -482,9 +442,7 @@
             if (!currentUser) return;
             const uid = currentUser.uid;
             try {
-                await updateDoc(doc(db, 'users', uid, 'conversations', conversationId), {
-                    title: newTitle
-                });
+                await updateDoc(doc(db, 'users', uid, 'conversations', conversationId), { title: newTitle });
                 showStatus('Conversa renomeada.');
             } catch (error) {
                 console.error('Erro ao renomear conversa:', error);
@@ -546,31 +504,25 @@
             document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
         }
 
-        // ==================== SEND MESSAGE ====================
         async function sendMessage(text) {
             text = text.trim();
             if (!text) return;
-            
             if (!currentUser) {
                 showStatus('Faça login para enviar mensagens.');
                 alert('Você precisa estar logado para enviar mensagens e salvar conversas.');
                 return;
             }
-
             if (!currentConversationId) {
                 conversationRef = doc(collection(db, 'users', currentUser.uid, 'conversations'));
                 currentConversationMessages = [{ role: 'user', content: text }];
             } else {
                 currentConversationMessages.push({ role: 'user', content: text });
             }
-
             renderChat();
             input.value = "";
             showStatus("CaiobaGPT está pensando...");
             typingIndicator();
-
             try {
-                // Incluir pronomes e instruções no payload
                 const payload = {
                     messages: currentConversationMessages,
                     userPronoun: settings.userPronoun || null,
@@ -584,11 +536,9 @@
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || "Erro na IA.");
-
                 removeTypingIndicator();
                 currentConversationMessages.push({ role: 'assistant', content: data.response || "Não recebi uma resposta da IA." });
                 renderChat();
-
                 if (!currentConversationId) {
                     const title = generateTitle(text);
                     await setDoc(conversationRef, {
@@ -619,7 +569,6 @@
             }
         }
 
-        // ==================== EVENT LISTENERS ====================
         form.onsubmit = (e) => {
             e.preventDefault();
             sendMessage(input.value);
@@ -640,14 +589,8 @@
             }
         };
 
-        hamburgerBtn.onclick = () => {
-            toggleSidebar();
-        };
-
-        sidebarOverlay.onclick = () => {
-            closeSidebar();
-        };
-
+        hamburgerBtn.onclick = () => toggleSidebar();
+        sidebarOverlay.onclick = () => closeSidebar();
         newConvBtn.onclick = startNewConversation;
 
         settingsBtn.onclick = () => {
@@ -655,9 +598,9 @@
             settingsPanel.style.display = isVisible ? 'none' : 'block';
         };
 
-        savePronounsBtn.onclick = saveSettings;
+        // Mudança importante: usar addEventListener para o botão salvar
+        savePronounsBtn.addEventListener('click', saveSettings);
 
-        // ==================== AUTH STATE LISTENER ====================
         onAuthStateChanged(auth, async (user) => {
             currentUser = user;
             renderAuthUI(user);
@@ -679,7 +622,6 @@
             }
         });
 
-        // ==================== INITIAL SETUP ====================
         function init() {
             if (window.innerWidth <= 768) {
                 sidebar.classList.add('closed');
@@ -695,7 +637,7 @@
                 sidebarOverlay.classList.remove('show');
             } else {
                 if (!sidebar.classList.contains('closed')) {
-                    // mantém estado atual se o usuário abriu manualmente
+                    // mantém estado
                 } else {
                     sidebar.classList.add('closed');
                 }
