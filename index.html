@@ -1,643 +1,612 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Início - Sala de Aula</title>
-<link rel="icon" href="https://ssl.gstatic.com/classroom/favicon.png">
-<style>
-*{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b1020;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
-#app-container{display:flex;height:100vh;overflow:hidden}
-/* Sidebar */
-#sidebar{width:300px;background:#111827;border-right:1px solid #26304a;height:100vh;overflow-y:auto;padding:16px;flex-shrink:0;transition:left 0.3s;position:fixed;left:0;top:0;bottom:0;z-index:20}
-#sidebar:not(.open){left:-320px}
-#sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:15}
-#sidebar-overlay.show{display:block}
-/* Main area */
-.app{flex:1;max-width:1000px;height:100vh;margin:auto;display:grid;grid-template-rows:auto 1fr auto;min-width:0}
-header{padding:16px 20px;border-bottom:1px solid #26304a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
-.brand{display:flex;gap:12px;align-items:center}.logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#7357ff;font-weight:900}.sub{font-size:12px;color:#8e9ab5}
-.header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-button{cursor:pointer;color:#fff;background:#19233b;border:1px solid #2b3857;border-radius:10px;padding:9px 12px}
-button:hover{background:#22304d}
-#chat{overflow:auto;padding:24px 14px}.empty{text-align:center;margin:12vh auto;max-width:650px}.empty h2{font-size:42px;margin:0 0 10px}.empty p{color:#9aa7c0}
-.suggestions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:20px}.message{max-width:800px;margin:16px auto;display:flex;gap:10px}.message.user{justify-content:flex-end}
-.avatar{width:32px;height:32px;flex:none;border-radius:9px;background:#19233b;display:grid;place-items:center;font-weight:800}
-.bubble{max-width:80%;padding:12px 15px;border:1px solid #2a3550;background:#152039;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
-.user .bubble{background:#26385f}.user .avatar{order:2}form{padding:12px 14px 18px;border-top:1px solid #26304a}
-.composer{max-width:800px;margin:auto;display:flex;gap:8px;padding:8px;background:#121a2d;border:1px solid #2a3550;border-radius:16px}
-textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;padding:10px;font:inherit;max-height:150px}#send{background:#7357ff;font-weight:800}
-.status{max-width:800px;margin:6px auto 0;color:#7f8ca7;font-size:11px;text-align:right}
-.typing span{display:inline-block;width:6px;height:6px;border-radius:50%;background:#9aa7c0;margin:0 2px;animation:b .8s infinite}.typing span:nth-child(2){animation-delay:.12s}.typing span:nth-child(3){animation-delay:.24s}
-@keyframes b{50%{transform:translateY(-4px);opacity:.4}}
-/* User info / auth */
-#user-info{display:flex;align-items:center;gap:8px}
-#user-info img{width:32px;height:32px;border-radius:50%;object-fit:cover}
-#user-name{font-weight:600;color:#fff}
-#auth-button,#logout-button{padding:8px 12px}
-/* Sidebar content */
-#sidebar h3{margin:0 0 16px;font-size:18px;color:#fff}
-.new-conv-btn{width:100%;margin-bottom:24px;background:#7357ff;border:none;font-weight:600;padding:14px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
-.new-conv-btn:hover{background:#5f45e0}
-.continue-text{margin:0 0 12px;color:#9aa7c0;font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
-.conv-list{list-style:none;padding:0;margin:0}
-.conv-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;cursor:pointer;transition:background 0.2s;border:1px solid transparent;margin-bottom:4px;position:relative;group:flex}
-.conv-item:hover{background:#1c2940;border-color:#2b3857}
-.conv-item.active{background:#26385f;border-color:#7357ff}
-.conv-title{flex:1;font-size:14px;color:#ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:8px}
-.conv-date{font-size:11px;color:#8e9ab5;white-space:nowrap;margin-right:8px}
-.conv-actions{display:flex;gap:4px;opacity:0;transition:opacity 0.2s}
-.conv-item:hover .conv-actions{opacity:1}
-.conv-rename,.conv-delete{background:none;border:none;color:#8e9ab5;font-size:14px;cursor:pointer;padding:4px 6px;border-radius:4px}
-.conv-rename:hover{color:#7357ff;background:#1a2540}
-.conv-delete:hover{color:#f88;background:#1a2540}
-.empty-sidebar{color:#7f8ca7;text-align:center;margin-top:20px;font-size:14px}
-/* Rename input */
-.rename-input{flex:1;background:#121a2d;border:1px solid #7357ff;border-radius:6px;color:#fff;padding:6px 8px;font-size:14px;outline:none}
-.rename-actions{display:flex;gap:4px}
-.rename-confirm,.rename-cancel{background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:4px 6px;border-radius:4px}
-.rename-confirm{color:#4caf50}
-.rename-cancel{color:#f88}
-/* Responsive */
-@media(max-width:768px){
-  #sidebar{left:-320px;position:fixed;top:0;bottom:0;z-index:20}
-  #sidebar.open{left:0}
-  #sidebar-overlay.show{display:block}
-  .app{max-width:100%}
-  header{padding:12px}
-}
-@media(max-width:600px){.bubble{max-width:88%}.empty h2{font-size:34px}}
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Início - Sala de Aula</title>
+    <link rel="icon" href="https://ssl.gstatic.com/classroom/favicon.png">
+    <style>
+        *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b1020;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+        #app-container{display:flex;height:100vh;overflow:hidden}
+        /* Sidebar */
+        #sidebar{width:300px;background:#111827;border-right:1px solid #26304a;height:100vh;overflow-y:auto;padding:16px;flex-shrink:0;transition:left 0.3s;position:fixed;left:0;top:0;bottom:0;z-index:20}
+        #sidebar:not(.open){left:-320px}
+        #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:15}
+        #sidebar-overlay.show{display:block}
+        /* Main area */
+        .app{flex:1;max-width:1000px;height:100vh;margin:auto;display:grid;grid-template-rows:auto 1fr auto;min-width:0}
+        header{padding:16px 20px;border-bottom:1px solid #26304a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+        .brand{display:flex;gap:12px;align-items:center}.logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#7357ff;font-weight:900}.sub{font-size:12px;color:#8e9ab5}
+        .header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        button{cursor:pointer;color:#fff;background:#19233b;border:1px solid #2b3857;border-radius:10px;padding:9px 12px}
+        button:hover{background:#22304d}
+        #chat{overflow:auto;padding:24px 14px}.empty{text-align:center;margin:12vh auto;max-width:650px}.empty h2{font-size:42px;margin:0 0 10px}.empty p{color:#9aa7c0}
+        .suggestions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:20px}.message{max-width:800px;margin:16px auto;display:flex;gap:10px}.message.user{justify-content:flex-end}
+        .avatar{width:32px;height:32px;flex:none;border-radius:9px;background:#19233b;display:grid;place-items:center;font-weight:800}
+        .bubble{max-width:80%;padding:12px 15px;border:1px solid #2a3550;background:#152039;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+        .user .bubble{background:#26385f}.user .avatar{order:2}form{padding:12px 14px 18px;border-top:1px solid #26304a}
+        .composer{max-width:800px;margin:auto;display:flex;gap:8px;padding:8px;background:#121a2d;border:1px solid #2a3550;border-radius:16px}
+        textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;padding:10px;font:inherit;max-height:150px}#send{background:#7357ff;font-weight:800}
+        .status{max-width:800px;margin:6px auto 0;color:#7f8ca7;font-size:11px;text-align:right}
+        .typing span{display:inline-block;width:6px;height:6px;border-radius:50%;background:#9aa7c0;margin:0 2px;animation:b .8s infinite}.typing span:nth-child(2){animation-delay:.12s}.typing span:nth-child(3){animation-delay:.24s}
+        @keyframes b{50%{transform:translateY(-4px);opacity:.4}}
+        /* User info / auth */
+        #user-info{display:flex;align-items:center;gap:8px}
+        #user-info img{width:32px;height:32px;border-radius:50%;object-fit:cover}
+        #user-name{font-weight:600;color:#fff}
+        #auth-button,#logout-button{padding:8px 12px}
+        /* Sidebar content */
+        #sidebar h3{margin:0 0 16px;font-size:18px;color:#fff}
+        .new-conv-btn{width:100%;margin-bottom:24px;background:#7357ff;border:none;font-weight:600;padding:14px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+        .new-conv-btn:hover{background:#5f45e0}
+        .continue-text{margin:0 0 12px;color:#9aa7c0;font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
+        .conv-list{list-style:none;padding:0;margin:0}
+        .conv-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;cursor:pointer;transition:background 0.2s;border:1px solid transparent;margin-bottom:4px;position:relative}
+        .conv-item:hover{background:#1c2940;border-color:#2b3857}
+        .conv-item.active{background:#26385f;border-color:#7357ff}
+        .conv-title{flex:1;font-size:14px;color:#ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:8px}
+        .conv-date{font-size:11px;color:#8e9ab5;white-space:nowrap;margin-right:8px}
+        .conv-actions{display:flex;gap:4px;opacity:0;transition:opacity 0.2s}
+        .conv-item:hover .conv-actions{opacity:1}
+        .conv-rename,.conv-delete{background:none;border:none;color:#8e9ab5;font-size:14px;cursor:pointer;padding:4px 6px;border-radius:4px}
+        .conv-rename:hover{color:#7357ff;background:#1a2540}
+        .conv-delete:hover{color:#f88;background:#1a2540}
+        .empty-sidebar{color:#7f8ca7;text-align:center;margin-top:20px;font-size:14px}
+        .rename-input{flex:1;background:#121a2d;border:1px solid #7357ff;border-radius:6px;color:#fff;padding:6px 8px;font-size:14px;outline:none}
+        .rename-actions{display:flex;gap:4px}
+        .rename-confirm,.rename-cancel{background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:4px 6px;border-radius:4px}
+        .rename-confirm{color:#4caf50}
+        .rename-cancel{color:#f88}
+        /* Responsive - hamburger button */
+        #hamburger{display:none;background:none;border:none;color:#fff;font-size:24px;padding:4px;cursor:pointer}
+        @media(max-width:768px){
+            #hamburger{display:block !important;}
+            #sidebar{left:-320px;position:fixed;top:0;bottom:0;z-index:20}
+            #sidebar.open{left:0}
+            #sidebar-overlay.show{display:block}
+            .app{max-width:100%}
+            header{padding:12px}
+        }
+        @media(max-width:600px){.bubble{max-width:88%}.empty h2{font-size:34px}}
+    </style>
 </head>
 <body>
-<div id="app-container">
-  <!-- Sidebar overlay for mobile -->
-  <div id="sidebar-overlay"></div>
+    <div id="app-container">
+        <!-- Sidebar overlay for mobile -->
+        <div id="sidebar-overlay"></div>
 
-  <!-- Sidebar -->
-  <aside id="sidebar">
-    <h3>CaiobaGPT</h3>
-    
-    <!-- Botão Nova Conversa com símbolo de lápis -->
-    <button class="new-conv-btn" id="new-conv-btn">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
-        <path d="m15 5 4 4"/>
-      </svg>
-      Nova Conversa
-    </button>
-    
-    <!-- Texto "Continuar conversando" -->
-    <p class="continue-text">Continuar conversando</p>
-    
-    <!-- Lista de conversas -->
-    <ul class="conv-list" id="conv-list"></ul>
-    <div class="empty-sidebar" id="empty-sidebar">Nenhuma conversa ainda.</div>
-  </aside>
+        <!-- Sidebar -->
+        <aside id="sidebar">
+            <h3>CaiobaGPT</h3>
+            
+            <button class="new-conv-btn" id="new-conv-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                    <path d="m15 5 4 4"/>
+                </svg>
+                Nova Conversa
+            </button>
+            
+            <p class="continue-text">Continuar conversando</p>
+            
+            <ul class="conv-list" id="conv-list"></ul>
+            <div class="empty-sidebar" id="empty-sidebar">Nenhuma conversa ainda.</div>
+        </aside>
 
-  <!-- Main app -->
-  <main class="app">
-    <header>
-      <div class="brand">
-        <button id="hamburger" style="display:none;">☰</button>
-        <div class="logo">C</div>
-        <div><b>CaiobaGPT</b><div class="sub">Seu assistente de IA, com personalidade própria.</div></div>
-      </div>
-      <div class="header-actions">
-        <div id="user-info">
-          <!-- Auth UI will be inserted here -->
-        </div>
-        <button id="clear">Limpar</button>
-      </div>
-    </header>
-    <section id="chat"></section>
-    <form id="form">
-      <div class="composer">
-        <textarea id="input" rows="1" placeholder="Manda a braba..."></textarea>
-        <button id="send" type="submit">Enviar</button>
-      </div>
-      <div class="status" id="status">Histórico salvo neste navegador.</div>
-    </form>
-  </main>
-</div>
+        <!-- Main app -->
+        <main class="app">
+            <header>
+                <div class="brand">
+                    <button id="hamburger" aria-label="Abrir menu">☰</button>
+                    <div class="logo">C</div>
+                    <div><b>CaiobaGPT</b><div class="sub">Seu assistente de IA, com personalidade própria.</div></div>
+                </div>
+                <div class="header-actions">
+                    <div id="user-info"></div>
+                    <button id="clear">Limpar</button>
+                </div>
+            </header>
+            <section id="chat"></section>
+            <form id="form">
+                <div class="composer">
+                    <textarea id="input" rows="1" placeholder="Manda a braba..."></textarea>
+                    <button id="send" type="submit">Enviar</button>
+                </div>
+                <div class="status" id="status">Histórico salvo neste navegador.</div>
+            </form>
+        </main>
+    </div>
 
-<script type="module">
-// ==================== FIREBASE INIT ====================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import {
-  getAuth,
-  GoogleAuthProvider,
-  signInWithPopup,
-  onAuthStateChanged,
-  signOut
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import {
-  getFirestore,
-  doc,
-  collection,
-  setDoc,
-  updateDoc,
-  deleteDoc,
-  getDoc,
-  getDocs,
-  query,
-  orderBy,
-  serverTimestamp
-} from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+    <script type="module">
+        // ==================== FIREBASE INIT ====================
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import {
+            getAuth,
+            GoogleAuthProvider,
+            signInWithPopup,
+            onAuthStateChanged,
+            signOut
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import {
+            getFirestore,
+            doc,
+            collection,
+            setDoc,
+            updateDoc,
+            deleteDoc,
+            getDoc,
+            getDocs,
+            query,
+            orderBy,
+            serverTimestamp
+        } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-const firebaseConfig = {
-  apiKey: "AIzaSyBAiXd7T_FsYW260mtO3UYFpCsxJpn4Gco",
-  authDomain: "caiobagpt-38f81.firebaseapp.com",
-  projectId: "caiobagpt-38f81",
-  storageBucket: "caiobagpt-38f81.firebasestorage.app",
-  messagingSenderId: "847377336410",
-  appId: "1:847377336410:web:d1149f5da6c84e3fcef063",
-  measurementId: "G-DDGEY2MQ1F"
-};
-
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
-
-// ==================== DOM REFERENCES ====================
-const WORKER_URL = "https://caiobagpt.caiosartor01.workers.dev";
-const chatEl = document.querySelector("#chat");
-const form = document.querySelector("#form");
-const input = document.querySelector("#input");
-const statusEl = document.querySelector("#status");
-const clearBtn = document.querySelector("#clear");
-const hamburgerBtn = document.querySelector("#hamburger");
-const sidebar = document.querySelector("#sidebar");
-const sidebarOverlay = document.querySelector("#sidebar-overlay");
-const newConvBtn = document.querySelector("#new-conv-btn");
-const convListEl = document.querySelector("#conv-list");
-const emptySidebarEl = document.querySelector("#empty-sidebar");
-const userInfoEl = document.querySelector("#user-info");
-
-// ==================== STATE ====================
-let currentUser = null;
-let currentConversationId = null;
-let currentConversationMessages = [];
-let conversationRef = null;
-let isRenaming = false;
-
-// ==================== HELPERS ====================
-function formatDate(timestamp) {
-  if (!timestamp) return "";
-  const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
-}
-
-function generateTitle(text) {
-  // Remove pontuação e limita a 50 caracteres
-  const cleanText = text.replace(/[.!?]+$/, '').trim();
-  return cleanText.length > 50 ? cleanText.slice(0, 50) + "..." : cleanText;
-}
-
-function showStatus(message) {
-  statusEl.textContent = message;
-}
-
-function toggleSidebar(forceOpen) {
-  const isOpen = sidebar.classList.contains('open');
-  const shouldOpen = forceOpen !== undefined ? forceOpen : !isOpen;
-  sidebar.classList.toggle('open', shouldOpen);
-  sidebarOverlay.classList.toggle('show', shouldOpen);
-}
-
-function closeSidebar() {
-  sidebar.classList.remove('open');
-  sidebarOverlay.classList.remove('show');
-}
-
-// ==================== AUTH ====================
-function renderAuthUI(user) {
-  userInfoEl.innerHTML = "";
-  if (user) {
-    const photoURL = user.photoURL;
-    const displayName = user.displayName || "Usuário";
-    const nameSpan = document.createElement('span');
-    nameSpan.id = 'user-name';
-    nameSpan.textContent = displayName;
-    const img = document.createElement('img');
-    img.src = photoURL || '';
-    img.alt = 'Foto do usuário';
-    img.onerror = () => { img.style.display = 'none'; };
-    const logoutBtn = document.createElement('button');
-    logoutBtn.id = 'logout-button';
-    logoutBtn.textContent = 'Sair';
-    logoutBtn.onclick = async () => {
-      try {
-        await signOut(auth);
-        showStatus('Você saiu da conta.');
-      } catch (error) {
-        console.error('Logout error:', error);
-        showStatus('Erro ao sair.');
-      }
-    };
-    userInfoEl.append(img, nameSpan, logoutBtn);
-  } else {
-    const loginBtn = document.createElement('button');
-    loginBtn.id = 'auth-button';
-    loginBtn.textContent = 'Entrar com Google';
-    loginBtn.onclick = async () => {
-      const provider = new GoogleAuthProvider();
-      try {
-        await signInWithPopup(auth, provider);
-        showStatus('Login realizado com sucesso.');
-      } catch (error) {
-        console.error('Login error:', error);
-        showStatus('Erro ao fazer login: ' + error.message);
-      }
-    };
-    userInfoEl.appendChild(loginBtn);
-  }
-}
-
-// ==================== CHAT RENDERING ====================
-function renderChat() {
-  chatEl.innerHTML = "";
-  if (!currentConversationMessages.length) {
-    chatEl.innerHTML = '<div class="empty"><h2>Fala aí. 👊</h2><p>Eu sou o CaiobaGPT. Posso explicar assuntos, programar, ajudar em projetos e trocar ideia.</p><div class="suggestions"><button>Me explica como uma IA aprende.</button><button>Me ajuda a criar um site.</button><button>Me dá uma ideia de projeto em JavaScript.</button></div></div>';
-    const suggestionButtons = chatEl.querySelectorAll(".suggestions button");
-    suggestionButtons.forEach(btn => {
-      btn.onclick = () => {
-        input.value = btn.textContent;
-        input.focus();
-      };
-    });
-    return;
-  }
-  for (const m of currentConversationMessages) {
-    const row = document.createElement("div");
-    row.className = "message " + (m.role === "user" ? "user" : "assistant");
-    const avatar = document.createElement("div");
-    avatar.className = "avatar";
-    avatar.textContent = m.role === "user" ? "V" : "C";
-    const bubble = document.createElement("div");
-    bubble.className = "bubble";
-    bubble.textContent = m.content;
-    row.append(avatar, bubble);
-    chatEl.append(row);
-  }
-  chatEl.scrollTop = chatEl.scrollHeight;
-}
-
-function typingIndicator() {
-  const row = document.createElement("div");
-  row.id = "typing";
-  row.className = "message assistant";
-  row.innerHTML = '<div class="avatar">C</div><div class="bubble typing"><span></span><span></span><span></span></div>';
-  chatEl.append(row);
-  chatEl.scrollTop = chatEl.scrollHeight;
-}
-
-function removeTypingIndicator() {
-  document.querySelector("#typing")?.remove();
-}
-
-// ==================== FIREBASE OPERATIONS ====================
-async function loadConversations() {
-  if (!currentUser) {
-    convListEl.innerHTML = "";
-    emptySidebarEl.style.display = 'block';
-    return;
-  }
-  const uid = currentUser.uid;
-  const conversationsRef = collection(db, 'users', uid, 'conversations');
-  const q = query(conversationsRef, orderBy('updatedAt', 'desc'));
-  try {
-    const querySnapshot = await getDocs(q);
-    convListEl.innerHTML = "";
-    if (querySnapshot.empty) {
-      emptySidebarEl.style.display = 'block';
-    } else {
-      emptySidebarEl.style.display = 'none';
-      querySnapshot.forEach((docSnap) => {
-        const data = docSnap.data();
-        const li = document.createElement('li');
-        li.className = 'conv-item';
-        li.dataset.id = docSnap.id;
-        if (docSnap.id === currentConversationId) li.classList.add('active');
-
-        // Container para título e data
-        const titleContainer = document.createElement('div');
-        titleContainer.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
-        titleContainer.onclick = () => openConversation(docSnap.id);
-
-        const titleSpan = document.createElement('div');
-        titleSpan.className = 'conv-title';
-        titleSpan.textContent = data.title || 'Sem título';
-
-        const dateSpan = document.createElement('div');
-        dateSpan.className = 'conv-date';
-        dateSpan.textContent = formatDate(data.updatedAt);
-
-        titleContainer.append(titleSpan, dateSpan);
-
-        // Container para ações (renomear e excluir)
-        const actionsContainer = document.createElement('div');
-        actionsContainer.className = 'conv-actions';
-
-        const renameBtn = document.createElement('button');
-        renameBtn.className = 'conv-rename';
-        renameBtn.innerHTML = '✏️';
-        renameBtn.title = 'Renomear conversa';
-        renameBtn.onclick = (e) => {
-          e.stopPropagation();
-          startRename(docSnap.id, titleSpan, data.title);
+        const firebaseConfig = {
+            apiKey: "AIzaSyBAiXd7T_FsYW260mtO3UYFpCsxJpn4Gco",
+            authDomain: "caiobagpt-38f81.firebaseapp.com",
+            projectId: "caiobagpt-38f81",
+            storageBucket: "caiobagpt-38f81.firebasestorage.app",
+            messagingSenderId: "847377336410",
+            appId: "1:847377336410:web:d1149f5da6c84e3fcef063",
+            measurementId: "G-DDGEY2MQ1F"
         };
 
-        const deleteBtn = document.createElement('button');
-        deleteBtn.className = 'conv-delete';
-        deleteBtn.innerHTML = '🗑';
-        deleteBtn.title = 'Excluir conversa';
-        deleteBtn.onclick = async (e) => {
-          e.stopPropagation();
-          if (confirm('Excluir esta conversa?')) {
-            await deleteConversation(docSnap.id);
-          }
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // ==================== DOM REFERENCES ====================
+        const WORKER_URL = "https://caiobagpt.caiosartor01.workers.dev";
+        const chatEl = document.querySelector("#chat");
+        const form = document.querySelector("#form");
+        const input = document.querySelector("#input");
+        const statusEl = document.querySelector("#status");
+        const clearBtn = document.querySelector("#clear");
+        const hamburgerBtn = document.querySelector("#hamburger");
+        const sidebar = document.querySelector("#sidebar");
+        const sidebarOverlay = document.querySelector("#sidebar-overlay");
+        const newConvBtn = document.querySelector("#new-conv-btn");
+        const convListEl = document.querySelector("#conv-list");
+        const emptySidebarEl = document.querySelector("#empty-sidebar");
+        const userInfoEl = document.querySelector("#user-info");
+
+        // ==================== STATE ====================
+        let currentUser = null;
+        let currentConversationId = null;
+        let currentConversationMessages = [];
+        let conversationRef = null;
+        let isRenaming = false;
+
+        // ==================== HELPERS ====================
+        function formatDate(timestamp) {
+            if (!timestamp) return "";
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function generateTitle(text) {
+            const cleanText = text.replace(/[.!?]+$/, '').trim();
+            return cleanText.length > 50 ? cleanText.slice(0, 50) + "..." : cleanText;
+        }
+
+        function showStatus(message) {
+            statusEl.textContent = message;
+        }
+
+        function toggleSidebar(forceOpen) {
+            const isOpen = sidebar.classList.contains('open');
+            const shouldOpen = forceOpen !== undefined ? forceOpen : !isOpen;
+            sidebar.classList.toggle('open', shouldOpen);
+            sidebarOverlay.classList.toggle('show', shouldOpen);
+        }
+
+        function closeSidebar() {
+            sidebar.classList.remove('open');
+            sidebarOverlay.classList.remove('show');
+        }
+
+        // ==================== AUTH ====================
+        function renderAuthUI(user) {
+            userInfoEl.innerHTML = "";
+            if (user) {
+                const photoURL = user.photoURL;
+                const displayName = user.displayName || "Usuário";
+                const nameSpan = document.createElement('span');
+                nameSpan.id = 'user-name';
+                nameSpan.textContent = displayName;
+                const img = document.createElement('img');
+                img.src = photoURL || '';
+                img.alt = 'Foto do usuário';
+                img.onerror = () => { img.style.display = 'none'; };
+                const logoutBtn = document.createElement('button');
+                logoutBtn.id = 'logout-button';
+                logoutBtn.textContent = 'Sair';
+                logoutBtn.onclick = async () => {
+                    try {
+                        await signOut(auth);
+                        showStatus('Você saiu da conta.');
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                        showStatus('Erro ao sair.');
+                    }
+                };
+                userInfoEl.append(img, nameSpan, logoutBtn);
+            } else {
+                const loginBtn = document.createElement('button');
+                loginBtn.id = 'auth-button';
+                loginBtn.textContent = 'Entrar com Google';
+                loginBtn.onclick = async () => {
+                    const provider = new GoogleAuthProvider();
+                    try {
+                        await signInWithPopup(auth, provider);
+                        showStatus('Login realizado com sucesso.');
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        showStatus('Erro ao fazer login: ' + error.message);
+                    }
+                };
+                userInfoEl.appendChild(loginBtn);
+            }
+        }
+
+        // ==================== CHAT RENDERING ====================
+        function renderChat() {
+            chatEl.innerHTML = "";
+            if (!currentConversationMessages.length) {
+                chatEl.innerHTML = '<div class="empty"><h2>Fala aí. 👊</h2><p>Eu sou o CaiobaGPT. Posso explicar assuntos, programar, ajudar em projetos e trocar ideia.</p><div class="suggestions"><button>Me explica como uma IA aprende.</button><button>Me ajuda a criar um site.</button><button>Me dá uma ideia de projeto em JavaScript.</button></div></div>';
+                const suggestionButtons = chatEl.querySelectorAll(".suggestions button");
+                suggestionButtons.forEach(btn => {
+                    btn.onclick = () => {
+                        input.value = btn.textContent;
+                        input.focus();
+                    };
+                });
+                return;
+            }
+            for (const m of currentConversationMessages) {
+                const row = document.createElement("div");
+                row.className = "message " + (m.role === "user" ? "user" : "assistant");
+                const avatar = document.createElement("div");
+                avatar.className = "avatar";
+                avatar.textContent = m.role === "user" ? "V" : "C";
+                const bubble = document.createElement("div");
+                bubble.className = "bubble";
+                bubble.textContent = m.content;
+                row.append(avatar, bubble);
+                chatEl.append(row);
+            }
+            chatEl.scrollTop = chatEl.scrollHeight;
+        }
+
+        function typingIndicator() {
+            const row = document.createElement("div");
+            row.id = "typing";
+            row.className = "message assistant";
+            row.innerHTML = '<div class="avatar">C</div><div class="bubble typing"><span></span><span></span><span></span></div>';
+            chatEl.append(row);
+            chatEl.scrollTop = chatEl.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            document.querySelector("#typing")?.remove();
+        }
+
+        // ==================== FIREBASE OPERATIONS ====================
+        async function loadConversations() {
+            if (!currentUser) {
+                convListEl.innerHTML = "";
+                emptySidebarEl.style.display = 'block';
+                return;
+            }
+            const uid = currentUser.uid;
+            const conversationsRef = collection(db, 'users', uid, 'conversations');
+            const q = query(conversationsRef, orderBy('updatedAt', 'desc'));
+            try {
+                const querySnapshot = await getDocs(q);
+                convListEl.innerHTML = "";
+                if (querySnapshot.empty) {
+                    emptySidebarEl.style.display = 'block';
+                } else {
+                    emptySidebarEl.style.display = 'none';
+                    querySnapshot.forEach((docSnap) => {
+                        const data = docSnap.data();
+                        const li = document.createElement('li');
+                        li.className = 'conv-item';
+                        li.dataset.id = docSnap.id;
+                        if (docSnap.id === currentConversationId) li.classList.add('active');
+
+                        const titleContainer = document.createElement('div');
+                        titleContainer.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+                        titleContainer.onclick = () => openConversation(docSnap.id);
+
+                        const titleSpan = document.createElement('div');
+                        titleSpan.className = 'conv-title';
+                        titleSpan.textContent = data.title || 'Sem título';
+
+                        const dateSpan = document.createElement('div');
+                        dateSpan.className = 'conv-date';
+                        dateSpan.textContent = formatDate(data.updatedAt);
+
+                        titleContainer.append(titleSpan, dateSpan);
+
+                        const actionsContainer = document.createElement('div');
+                        actionsContainer.className = 'conv-actions';
+
+                        const renameBtn = document.createElement('button');
+                        renameBtn.className = 'conv-rename';
+                        renameBtn.innerHTML = '✏️';
+                        renameBtn.title = 'Renomear conversa';
+                        renameBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            startRename(docSnap.id, titleSpan, data.title);
+                        };
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'conv-delete';
+                        deleteBtn.innerHTML = '🗑';
+                        deleteBtn.title = 'Excluir conversa';
+                        deleteBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            if (confirm('Excluir esta conversa?')) {
+                                await deleteConversation(docSnap.id);
+                            }
+                        };
+
+                        actionsContainer.append(renameBtn, deleteBtn);
+                        li.append(titleContainer, actionsContainer);
+                        convListEl.appendChild(li);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar conversas:', error);
+                showStatus('Erro ao carregar histórico.');
+            }
+        }
+
+        function startRename(conversationId, titleElement, currentTitle) {
+            if (isRenaming) return;
+            isRenaming = true;
+            
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'rename-input';
+            input.value = currentTitle;
+            input.placeholder = 'Novo título...';
+            
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'rename-confirm';
+            confirmBtn.innerHTML = '✓';
+            confirmBtn.title = 'Confirmar';
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'rename-cancel';
+            cancelBtn.innerHTML = '✕';
+            cancelBtn.title = 'Cancelar';
+            
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'rename-actions';
+            actionsContainer.append(confirmBtn, cancelBtn);
+            
+            const parentContainer = titleElement.parentElement;
+            parentContainer.replaceChild(input, titleElement);
+            parentContainer.appendChild(actionsContainer);
+            
+            input.focus();
+            input.select();
+            
+            const confirmRename = async () => {
+                const newTitle = input.value.trim() || currentTitle;
+                await renameConversation(conversationId, newTitle);
+                isRenaming = false;
+                await loadConversations();
+            };
+            
+            const cancelRename = () => {
+                isRenaming = false;
+                loadConversations();
+            };
+            
+            confirmBtn.onclick = confirmRename;
+            cancelBtn.onclick = cancelRename;
+            
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') confirmRename();
+                else if (e.key === 'Escape') cancelRename();
+            };
+        }
+
+        async function renameConversation(conversationId, newTitle) {
+            if (!currentUser) return;
+            const uid = currentUser.uid;
+            try {
+                await updateDoc(doc(db, 'users', uid, 'conversations', conversationId), {
+                    title: newTitle
+                });
+                showStatus('Conversa renomeada.');
+            } catch (error) {
+                console.error('Erro ao renomear conversa:', error);
+                showStatus('Erro ao renomear conversa.');
+            }
+        }
+
+        async function openConversation(conversationId) {
+            if (!currentUser || isRenaming) return;
+            closeSidebar();
+            const uid = currentUser.uid;
+            const docRef = doc(db, 'users', uid, 'conversations', conversationId);
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    currentConversationId = conversationId;
+                    conversationRef = docRef;
+                    currentConversationMessages = docSnap.data().messages || [];
+                    renderChat();
+                    showStatus('Conversa carregada.');
+                    document.querySelectorAll('.conv-item').forEach(el => {
+                        el.classList.toggle('active', el.dataset.id === conversationId);
+                    });
+                } else {
+                    showStatus('Conversa não encontrada.');
+                }
+            } catch (error) {
+                console.error('Erro ao abrir conversa:', error);
+                showStatus('Erro ao abrir conversa.');
+            }
+        }
+
+        async function deleteConversation(conversationId) {
+            if (!currentUser) return;
+            const uid = currentUser.uid;
+            try {
+                await deleteDoc(doc(db, 'users', uid, 'conversations', conversationId));
+                if (conversationId === currentConversationId) {
+                    currentConversationId = null;
+                    conversationRef = null;
+                    currentConversationMessages = [];
+                    renderChat();
+                    showStatus('Conversa excluída.');
+                }
+                await loadConversations();
+            } catch (error) {
+                console.error('Erro ao excluir conversa:', error);
+                showStatus('Erro ao excluir conversa.');
+            }
+        }
+
+        function startNewConversation() {
+            currentConversationId = null;
+            conversationRef = null;
+            currentConversationMessages = [];
+            renderChat();
+            closeSidebar();
+            showStatus('Nova conversa iniciada.');
+            document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
+        }
+
+        // ==================== SEND MESSAGE ====================
+        async function sendMessage(text) {
+            text = text.trim();
+            if (!text) return;
+            
+            if (!currentUser) {
+                showStatus('Faça login para enviar mensagens.');
+                alert('Você precisa estar logado para enviar mensagens e salvar conversas.');
+                return;
+            }
+
+            if (!currentConversationId) {
+                conversationRef = doc(collection(db, 'users', currentUser.uid, 'conversations'));
+                currentConversationMessages = [{ role: 'user', content: text }];
+            } else {
+                currentConversationMessages.push({ role: 'user', content: text });
+            }
+
+            renderChat();
+            input.value = "";
+            showStatus("CaiobaGPT está pensando...");
+            typingIndicator();
+
+            try {
+                const response = await fetch(WORKER_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ messages: currentConversationMessages })
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Erro na IA.");
+
+                removeTypingIndicator();
+                currentConversationMessages.push({ role: 'assistant', content: data.response || "Não recebi uma resposta da IA." });
+                renderChat();
+
+                if (!currentConversationId) {
+                    const title = generateTitle(text);
+                    await setDoc(conversationRef, {
+                        id: conversationRef.id,
+                        title: title,
+                        messages: currentConversationMessages,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+                    currentConversationId = conversationRef.id;
+                    showStatus('Conversa salva no Firestore.');
+                } else {
+                    await updateDoc(conversationRef, {
+                        messages: currentConversationMessages,
+                        updatedAt: serverTimestamp()
+                    });
+                    showStatus('Conversa atualizada.');
+                }
+                await loadConversations();
+            } catch (error) {
+                removeTypingIndicator();
+                if (currentConversationMessages.length > 0 && currentConversationMessages[currentConversationMessages.length - 1].role === 'user') {
+                    currentConversationMessages.pop();
+                }
+                renderChat();
+                showStatus("Erro ao conectar com a IA.");
+                alert("Não consegui falar com o CaiobaGPT: " + error.message);
+            }
+        }
+
+        // ==================== EVENT LISTENERS ====================
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            sendMessage(input.value);
         };
 
-        actionsContainer.append(renameBtn, deleteBtn);
-        li.append(titleContainer, actionsContainer);
-        convListEl.appendChild(li);
-      });
-    }
-  } catch (error) {
-    console.error('Erro ao carregar conversas:', error);
-    showStatus('Erro ao carregar histórico.');
-  }
-}
+        input.onkeydown = (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                form.requestSubmit();
+            }
+        };
 
-function startRename(conversationId, titleElement, currentTitle) {
-  if (isRenaming) return;
-  isRenaming = true;
-  
-  // Criar input de renomeação
-  const input = document.createElement('input');
-  input.type = 'text';
-  input.className = 'rename-input';
-  input.value = currentTitle;
-  input.placeholder = 'Novo título...';
-  
-  // Botões de confirmar e cancelar
-  const confirmBtn = document.createElement('button');
-  confirmBtn.className = 'rename-confirm';
-  confirmBtn.innerHTML = '✓';
-  confirmBtn.title = 'Confirmar';
-  
-  const cancelBtn = document.createElement('button');
-  cancelBtn.className = 'rename-cancel';
-  cancelBtn.innerHTML = '✕';
-  cancelBtn.title = 'Cancelar';
-  
-  const actionsContainer = document.createElement('div');
-  actionsContainer.className = 'rename-actions';
-  actionsContainer.append(confirmBtn, cancelBtn);
-  
-  // Substituir título atual pelo input
-  const parentContainer = titleElement.parentElement;
-  const oldTitle = titleElement;
-  parentContainer.replaceChild(input, oldTitle);
-  parentContainer.appendChild(actionsContainer);
-  
-  input.focus();
-  input.select();
-  
-  // Função para confirmar renomeação
-  const confirmRename = async () => {
-    const newTitle = input.value.trim() || currentTitle;
-    await renameConversation(conversationId, newTitle);
-    isRenaming = false;
-    await loadConversations();
-  };
-  
-  // Função para cancelar renomeação
-  const cancelRename = () => {
-    isRenaming = false;
-    loadConversations();
-  };
-  
-  confirmBtn.onclick = confirmRename;
-  cancelBtn.onclick = cancelRename;
-  
-  input.onkeydown = (e) => {
-    if (e.key === 'Enter') {
-      confirmRename();
-    } else if (e.key === 'Escape') {
-      cancelRename();
-    }
-  };
-}
+        clearBtn.onclick = () => {
+            if (currentConversationId || currentConversationMessages.length > 0) {
+                startNewConversation();
+            } else {
+                showStatus('O chat já está vazio.');
+            }
+        };
 
-async function renameConversation(conversationId, newTitle) {
-  if (!currentUser) return;
-  const uid = currentUser.uid;
-  try {
-    await updateDoc(doc(db, 'users', uid, 'conversations', conversationId), {
-      title: newTitle
-    });
-    showStatus('Conversa renomeada.');
-  } catch (error) {
-    console.error('Erro ao renomear conversa:', error);
-    showStatus('Erro ao renomear conversa.');
-  }
-}
+        hamburgerBtn.onclick = () => {
+            toggleSidebar();
+        };
 
-async function openConversation(conversationId) {
-  if (!currentUser || isRenaming) return;
-  closeSidebar();
-  const uid = currentUser.uid;
-  const docRef = doc(db, 'users', uid, 'conversations', conversationId);
-  try {
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      currentConversationId = conversationId;
-      conversationRef = docRef;
-      currentConversationMessages = docSnap.data().messages || [];
-      renderChat();
-      showStatus('Conversa carregada.');
-      document.querySelectorAll('.conv-item').forEach(el => {
-        el.classList.toggle('active', el.dataset.id === conversationId);
-      });
-    } else {
-      showStatus('Conversa não encontrada.');
-    }
-  } catch (error) {
-    console.error('Erro ao abrir conversa:', error);
-    showStatus('Erro ao abrir conversa.');
-  }
-}
+        sidebarOverlay.onclick = () => {
+            closeSidebar();
+        };
 
-async function deleteConversation(conversationId) {
-  if (!currentUser) return;
-  const uid = currentUser.uid;
-  try {
-    await deleteDoc(doc(db, 'users', uid, 'conversations', conversationId));
-    if (conversationId === currentConversationId) {
-      currentConversationId = null;
-      conversationRef = null;
-      currentConversationMessages = [];
-      renderChat();
-      showStatus('Conversa excluída.');
-    }
-    await loadConversations();
-  } catch (error) {
-    console.error('Erro ao excluir conversa:', error);
-    showStatus('Erro ao excluir conversa.');
-  }
-}
+        newConvBtn.onclick = startNewConversation;
 
-function startNewConversation() {
-  currentConversationId = null;
-  conversationRef = null;
-  currentConversationMessages = [];
-  renderChat();
-  closeSidebar();
-  showStatus('Nova conversa iniciada.');
-  document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
-}
+        // ==================== AUTH STATE LISTENER ====================
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            renderAuthUI(user);
+            if (user) {
+                showStatus('Bem-vindo, ' + (user.displayName || 'usuário') + '!');
+                await loadConversations();
+            } else {
+                currentConversationId = null;
+                conversationRef = null;
+                currentConversationMessages = [];
+                renderChat();
+                convListEl.innerHTML = "";
+                emptySidebarEl.style.display = 'block';
+                showStatus('Você está deslogado. Faça login para salvar conversas.');
+            }
+        });
 
-// ==================== SEND MESSAGE ====================
-async function sendMessage(text) {
-  text = text.trim();
-  if (!text) return;
-  
-  if (!currentUser) {
-    showStatus('Faça login para enviar mensagens.');
-    alert('Você precisa estar logado para enviar mensagens e salvar conversas.');
-    return;
-  }
+        // ==================== INITIAL SETUP ====================
+        function init() {
+            // Não precisamos mais esconder o hambúrguer via JS; o CSS já controla a exibição
+            renderChat();
+            renderAuthUI(null);
+            showStatus('Histórico salvo neste navegador (para salvar na nuvem, faça login).');
+        }
 
-  // Add user message to current conversation
-  if (!currentConversationId) {
-    conversationRef = doc(collection(db, 'users', currentUser.uid, 'conversations'));
-    currentConversationMessages = [{ role: 'user', content: text }];
-  } else {
-    currentConversationMessages.push({ role: 'user', content: text });
-  }
-
-  renderChat();
-  input.value = "";
-  showStatus("CaiobaGPT está pensando...");
-  typingIndicator();
-
-  try {
-    const response = await fetch(WORKER_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: currentConversationMessages })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error || "Erro na IA.");
-
-    removeTypingIndicator();
-    currentConversationMessages.push({ role: 'assistant', content: data.response || "Não recebi uma resposta da IA." });
-    renderChat();
-
-    // Save/update conversation in Firestore
-    if (!currentConversationId) {
-      const title = generateTitle(text);
-      await setDoc(conversationRef, {
-        id: conversationRef.id,
-        title: title,
-        messages: currentConversationMessages,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-      currentConversationId = conversationRef.id;
-      showStatus('Conversa salva no Firestore.');
-    } else {
-      await updateDoc(conversationRef, {
-        messages: currentConversationMessages,
-        updatedAt: serverTimestamp()
-      });
-      showStatus('Conversa atualizada.');
-    }
-    await loadConversations();
-  } catch (error) {
-    removeTypingIndicator();
-    if (currentConversationMessages.length > 0 && currentConversationMessages[currentConversationMessages.length - 1].role === 'user') {
-      currentConversationMessages.pop();
-    }
-    renderChat();
-    showStatus("Erro ao conectar com a IA.");
-    alert("Não consegui falar com o CaiobaGPT: " + error.message);
-  }
-}
-
-// ==================== EVENT LISTENERS ====================
-form.onsubmit = (e) => {
-  e.preventDefault();
-  sendMessage(input.value);
-};
-
-input.onkeydown = (e) => {
-  if (e.key === "Enter" && !e.shiftKey) {
-    e.preventDefault();
-    form.requestSubmit();
-  }
-};
-
-clearBtn.onclick = () => {
-  if (currentConversationId || currentConversationMessages.length > 0) {
-    startNewConversation();
-  } else {
-    showStatus('O chat já está vazio.');
-  }
-};
-
-hamburgerBtn.onclick = () => {
-  toggleSidebar();
-};
-
-sidebarOverlay.onclick = () => {
-  closeSidebar();
-};
-
-newConvBtn.onclick = startNewConversation;
-
-// ==================== AUTH STATE LISTENER ====================
-onAuthStateChanged(auth, async (user) => {
-  currentUser = user;
-  renderAuthUI(user);
-  if (user) {
-    showStatus('Bem-vindo, ' + (user.displayName || 'usuário') + '!');
-    await loadConversations();
-  } else {
-    currentConversationId = null;
-    conversationRef = null;
-    currentConversationMessages = [];
-    renderChat();
-    convListEl.innerHTML = "";
-    emptySidebarEl.style.display = 'block';
-    showStatus('Você está deslogado. Faça login para salvar conversas.');
-  }
-});
-
-// ==================== INITIAL SETUP ====================
-function init() {
-  if (window.innerWidth <= 768) {
-    hamburgerBtn.style.display = 'inline-block';
-  } else {
-    hamburgerBtn.style.display = 'none';
-  }
-  renderChat();
-  renderAuthUI(null);
-  showStatus('Histórico salvo neste navegador (para salvar na nuvem, faça login).');
-}
-
-window.addEventListener('resize', () => {
-  if (window.innerWidth <= 768) {
-    hamburgerBtn.style.display = 'inline-block';
-  } else {
-    hamburgerBtn.style.display = 'none';
-    closeSidebar();
-  }
-});
-
-init();
-</script>
+        init();
+    </script>
 </body>
 </html>
