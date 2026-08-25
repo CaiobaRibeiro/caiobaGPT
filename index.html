@@ -9,8 +9,8 @@
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b1020;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
 #app-container{display:flex;height:100vh;overflow:hidden}
 /* Sidebar */
-#sidebar{width:280px;background:#111827;border-right:1px solid #26304a;height:100vh;overflow-y:auto;padding:16px;flex-shrink:0;transition:left 0.3s;position:fixed;left:0;top:0;bottom:0;z-index:20}
-#sidebar:not(.open){left:-300px}
+#sidebar{width:300px;background:#111827;border-right:1px solid #26304a;height:100vh;overflow-y:auto;padding:16px;flex-shrink:0;transition:left 0.3s;position:fixed;left:0;top:0;bottom:0;z-index:20}
+#sidebar:not(.open){left:-320px}
 #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:15}
 #sidebar-overlay.show{display:block}
 /* Main area */
@@ -37,25 +37,30 @@ textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;paddin
 #auth-button,#logout-button{padding:8px 12px}
 /* Sidebar content */
 #sidebar h3{margin:0 0 16px;font-size:18px;color:#fff}
-.new-conv-btn{width:100%;margin-bottom:16px;background:#7357ff;border:none;font-weight:600;padding:12px}
+.new-conv-btn{width:100%;margin-bottom:24px;background:#7357ff;border:none;font-weight:600;padding:14px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:8px}
+.new-conv-btn:hover{background:#5f45e0}
+.continue-text{margin:0 0 12px;color:#9aa7c0;font-size:13px;font-weight:600;letter-spacing:0.5px;text-transform:uppercase}
 .conv-list{list-style:none;padding:0;margin:0}
-.conv-item{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;cursor:pointer;transition:background 0.2s;border:1px solid transparent}
+.conv-item{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:8px;cursor:pointer;transition:background 0.2s;border:1px solid transparent;margin-bottom:4px;position:relative;group:flex}
 .conv-item:hover{background:#1c2940;border-color:#2b3857}
 .conv-item.active{background:#26385f;border-color:#7357ff}
 .conv-title{flex:1;font-size:14px;color:#ddd;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-right:8px}
-.conv-date{font-size:11px;color:#8e9ab5;white-space:nowrap}
-.conv-delete{background:none;border:none;color:#f88;font-size:16px;padding:0 4px}
-.conv-delete:hover{color:#f00}
+.conv-date{font-size:11px;color:#8e9ab5;white-space:nowrap;margin-right:8px}
+.conv-actions{display:flex;gap:4px;opacity:0;transition:opacity 0.2s}
+.conv-item:hover .conv-actions{opacity:1}
+.conv-rename,.conv-delete{background:none;border:none;color:#8e9ab5;font-size:14px;cursor:pointer;padding:4px 6px;border-radius:4px}
+.conv-rename:hover{color:#7357ff;background:#1a2540}
+.conv-delete:hover{color:#f88;background:#1a2540}
 .empty-sidebar{color:#7f8ca7;text-align:center;margin-top:20px;font-size:14px}
-/* Memory panel */
-#memory-panel{margin-top:20px;padding-top:16px;border-top:1px solid #26304a}
-#memory-panel h4{margin:0 0 8px;color:#9aa7c0;font-size:14px}
-#memory-list{list-style:none;padding:0;margin:0}
-#memory-list li{background:#1a2540;border-radius:6px;padding:8px;margin-bottom:6px;font-size:12px;color:#c5cde0;display:flex;justify-content:space-between;align-items:center}
-#memory-list .delete-memory{color:#f88;background:none;border:none;font-size:12px;cursor:pointer;padding:0 4px}
+/* Rename input */
+.rename-input{flex:1;background:#121a2d;border:1px solid #7357ff;border-radius:6px;color:#fff;padding:6px 8px;font-size:14px;outline:none}
+.rename-actions{display:flex;gap:4px}
+.rename-confirm,.rename-cancel{background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:4px 6px;border-radius:4px}
+.rename-confirm{color:#4caf50}
+.rename-cancel{color:#f88}
 /* Responsive */
 @media(max-width:768px){
-  #sidebar{left:-300px;position:fixed;top:0;bottom:0;z-index:20}
+  #sidebar{left:-320px;position:fixed;top:0;bottom:0;z-index:20}
   #sidebar.open{left:0}
   #sidebar-overlay.show{display:block}
   .app{max-width:100%}
@@ -72,15 +77,22 @@ textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;paddin
   <!-- Sidebar -->
   <aside id="sidebar">
     <h3>CaiobaGPT</h3>
-    <button class="new-conv-btn" id="new-conv-btn">+ Nova conversa</button>
+    
+    <!-- Botão Nova Conversa com símbolo de lápis -->
+    <button class="new-conv-btn" id="new-conv-btn">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+        <path d="m15 5 4 4"/>
+      </svg>
+      Nova Conversa
+    </button>
+    
+    <!-- Texto "Continuar conversando" -->
+    <p class="continue-text">Continuar conversando</p>
+    
+    <!-- Lista de conversas -->
     <ul class="conv-list" id="conv-list"></ul>
     <div class="empty-sidebar" id="empty-sidebar">Nenhuma conversa ainda.</div>
-    
-    <!-- Memórias da IA -->
-    <div id="memory-panel" style="display:none;">
-      <h4>🧠 Memórias da IA</h4>
-      <ul id="memory-list"></ul>
-    </div>
   </aside>
 
   <!-- Main app -->
@@ -89,7 +101,7 @@ textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;paddin
       <div class="brand">
         <button id="hamburger" style="display:none;">☰</button>
         <div class="logo">C</div>
-        <div><b>CaiobaGPT</b><div class="sub">Seu assistente de IA, com memória persistente.</div></div>
+        <div><b>CaiobaGPT</b><div class="sub">Seu assistente de IA, com personalidade própria.</div></div>
       </div>
       <div class="header-actions">
         <div id="user-info">
@@ -130,9 +142,7 @@ import {
   getDocs,
   query,
   orderBy,
-  serverTimestamp,
-  arrayUnion,
-  arrayRemove
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -163,26 +173,25 @@ const newConvBtn = document.querySelector("#new-conv-btn");
 const convListEl = document.querySelector("#conv-list");
 const emptySidebarEl = document.querySelector("#empty-sidebar");
 const userInfoEl = document.querySelector("#user-info");
-const memoryPanel = document.querySelector("#memory-panel");
-const memoryListEl = document.querySelector("#memory-list");
 
 // ==================== STATE ====================
 let currentUser = null;
 let currentConversationId = null;
 let currentConversationMessages = [];
 let conversationRef = null;
-let currentMemories = []; // Array de memórias da IA
-let memoryDocRef = null; // Referência ao documento de memórias
+let isRenaming = false;
 
 // ==================== HELPERS ====================
 function formatDate(timestamp) {
   if (!timestamp) return "";
   const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-  return date.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
 }
 
 function generateTitle(text) {
-  return text.length > 80 ? text.slice(0, 80) + "..." : text;
+  // Remove pontuação e limita a 50 caracteres
+  const cleanText = text.replace(/[.!?]+$/, '').trim();
+  return cleanText.length > 50 ? cleanText.slice(0, 50) + "..." : cleanText;
 }
 
 function showStatus(message) {
@@ -287,124 +296,6 @@ function removeTypingIndicator() {
   document.querySelector("#typing")?.remove();
 }
 
-// ==================== MEMÓRIAS DA IA ====================
-async function loadMemories() {
-  if (!currentUser) {
-    memoryPanel.style.display = 'none';
-    currentMemories = [];
-    return;
-  }
-  const uid = currentUser.uid;
-  memoryDocRef = doc(db, 'users', uid, 'memories', 'data');
-  try {
-    const docSnap = await getDoc(memoryDocRef);
-    if (docSnap.exists()) {
-      currentMemories = docSnap.data().memories || [];
-    } else {
-      // Criar documento de memórias vazio
-      await setDoc(memoryDocRef, { memories: [] });
-      currentMemories = [];
-    }
-    renderMemories();
-  } catch (error) {
-    console.error('Erro ao carregar memórias:', error);
-    currentMemories = [];
-  }
-}
-
-function renderMemories() {
-  if (!currentUser || currentMemories.length === 0) {
-    memoryPanel.style.display = 'none';
-    return;
-  }
-  memoryPanel.style.display = 'block';
-  memoryListEl.innerHTML = "";
-  currentMemories.forEach((memory, index) => {
-    const li = document.createElement('li');
-    const textSpan = document.createElement('span');
-    textSpan.textContent = memory;
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'delete-memory';
-    deleteBtn.textContent = '✕';
-    deleteBtn.onclick = async () => {
-      await removeMemory(index);
-    };
-    li.append(textSpan, deleteBtn);
-    memoryListEl.appendChild(li);
-  });
-}
-
-async function addMemory(memory) {
-  if (!currentUser || !memory.trim()) return;
-  const memoryText = memory.trim();
-  if (!currentMemories.includes(memoryText)) {
-    currentMemories.push(memoryText);
-    try {
-      await updateDoc(memoryDocRef, {
-        memories: arrayUnion(memoryText)
-      });
-      renderMemories();
-    } catch (error) {
-      console.error('Erro ao adicionar memória:', error);
-      // Rollback
-      currentMemories.pop();
-    }
-  }
-}
-
-async function removeMemory(index) {
-  if (!currentUser) return;
-  const memoryToRemove = currentMemories[index];
-  currentMemories.splice(index, 1);
-  try {
-    await updateDoc(memoryDocRef, {
-      memories: arrayRemove(memoryToRemove)
-    });
-    renderMemories();
-  } catch (error) {
-    console.error('Erro ao remover memória:', error);
-    // Rollback
-    currentMemories.splice(index, 0, memoryToRemove);
-  }
-}
-
-// ==================== EXTRAÇÃO DE MEMÓRIAS ====================
-function extractMemoriesFromConversation() {
-  if (!currentUser || currentConversationMessages.length < 2) return;
-  
-  // Extrair informações importantes da conversa
-  const userMessages = currentConversationMessages.filter(m => m.role === 'user');
-  const assistantMessages = currentConversationMessages.filter(m => m.role === 'assistant');
-  
-  // Padrões para identificar informações relevantes
-  const patterns = [
-    // Nome do usuário
-    /meu nome é ([^.!?]+)/i,
-    /me chamo ([^.!?]+)/i,
-    /pode me chamar de ([^.!?]+)/i,
-    // Preferências
-    /eu (gosto|prefiro|adoro|amo) ([^.!?]+)/i,
-    /minha (cor|comida|música|banda|filme|série|jogo) (favorita|preferida) é ([^.!?]+)/i,
-    // Informações pessoais
-    /eu (trabalho|estudo|moro|sou) ([^.!?]+)/i,
-    /sou (desenvolvedor|programador|estudante|designer|professor) ([^.!?]+)/i,
-    // Objetivos
-    /meu objetivo é ([^.!?]+)/i,
-    /quero (aprender|estudar|desenvolver|criar) ([^.!?]+)/i
-  ];
-  
-  for (const msg of userMessages) {
-    const text = msg.content;
-    for (const pattern of patterns) {
-      const match = text.match(pattern);
-      if (match) {
-        const memoryText = `${match[0].trim()}`;
-        addMemory(memoryText);
-      }
-    }
-  }
-}
-
 // ==================== FIREBASE OPERATIONS ====================
 async function loadConversations() {
   if (!currentUser) {
@@ -429,13 +320,33 @@ async function loadConversations() {
         li.dataset.id = docSnap.id;
         if (docSnap.id === currentConversationId) li.classList.add('active');
 
-        const titleSpan = document.createElement('span');
+        // Container para título e data
+        const titleContainer = document.createElement('div');
+        titleContainer.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+        titleContainer.onclick = () => openConversation(docSnap.id);
+
+        const titleSpan = document.createElement('div');
         titleSpan.className = 'conv-title';
         titleSpan.textContent = data.title || 'Sem título';
 
-        const dateSpan = document.createElement('span');
+        const dateSpan = document.createElement('div');
         dateSpan.className = 'conv-date';
         dateSpan.textContent = formatDate(data.updatedAt);
+
+        titleContainer.append(titleSpan, dateSpan);
+
+        // Container para ações (renomear e excluir)
+        const actionsContainer = document.createElement('div');
+        actionsContainer.className = 'conv-actions';
+
+        const renameBtn = document.createElement('button');
+        renameBtn.className = 'conv-rename';
+        renameBtn.innerHTML = '✏️';
+        renameBtn.title = 'Renomear conversa';
+        renameBtn.onclick = (e) => {
+          e.stopPropagation();
+          startRename(docSnap.id, titleSpan, data.title);
+        };
 
         const deleteBtn = document.createElement('button');
         deleteBtn.className = 'conv-delete';
@@ -448,8 +359,8 @@ async function loadConversations() {
           }
         };
 
-        li.append(titleSpan, dateSpan, deleteBtn);
-        li.onclick = () => openConversation(docSnap.id);
+        actionsContainer.append(renameBtn, deleteBtn);
+        li.append(titleContainer, actionsContainer);
         convListEl.appendChild(li);
       });
     }
@@ -459,8 +370,83 @@ async function loadConversations() {
   }
 }
 
-async function openConversation(conversationId) {
+function startRename(conversationId, titleElement, currentTitle) {
+  if (isRenaming) return;
+  isRenaming = true;
+  
+  // Criar input de renomeação
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.className = 'rename-input';
+  input.value = currentTitle;
+  input.placeholder = 'Novo título...';
+  
+  // Botões de confirmar e cancelar
+  const confirmBtn = document.createElement('button');
+  confirmBtn.className = 'rename-confirm';
+  confirmBtn.innerHTML = '✓';
+  confirmBtn.title = 'Confirmar';
+  
+  const cancelBtn = document.createElement('button');
+  cancelBtn.className = 'rename-cancel';
+  cancelBtn.innerHTML = '✕';
+  cancelBtn.title = 'Cancelar';
+  
+  const actionsContainer = document.createElement('div');
+  actionsContainer.className = 'rename-actions';
+  actionsContainer.append(confirmBtn, cancelBtn);
+  
+  // Substituir título atual pelo input
+  const parentContainer = titleElement.parentElement;
+  const oldTitle = titleElement;
+  parentContainer.replaceChild(input, oldTitle);
+  parentContainer.appendChild(actionsContainer);
+  
+  input.focus();
+  input.select();
+  
+  // Função para confirmar renomeação
+  const confirmRename = async () => {
+    const newTitle = input.value.trim() || currentTitle;
+    await renameConversation(conversationId, newTitle);
+    isRenaming = false;
+    await loadConversations();
+  };
+  
+  // Função para cancelar renomeação
+  const cancelRename = () => {
+    isRenaming = false;
+    loadConversations();
+  };
+  
+  confirmBtn.onclick = confirmRename;
+  cancelBtn.onclick = cancelRename;
+  
+  input.onkeydown = (e) => {
+    if (e.key === 'Enter') {
+      confirmRename();
+    } else if (e.key === 'Escape') {
+      cancelRename();
+    }
+  };
+}
+
+async function renameConversation(conversationId, newTitle) {
   if (!currentUser) return;
+  const uid = currentUser.uid;
+  try {
+    await updateDoc(doc(db, 'users', uid, 'conversations', conversationId), {
+      title: newTitle
+    });
+    showStatus('Conversa renomeada.');
+  } catch (error) {
+    console.error('Erro ao renomear conversa:', error);
+    showStatus('Erro ao renomear conversa.');
+  }
+}
+
+async function openConversation(conversationId) {
+  if (!currentUser || isRenaming) return;
   closeSidebar();
   const uid = currentUser.uid;
   const docRef = doc(db, 'users', uid, 'conversations', conversationId);
@@ -538,17 +524,10 @@ async function sendMessage(text) {
   typingIndicator();
 
   try {
-    // Enviar mensagens e memórias para o Worker
-    const payload = {
-      messages: currentConversationMessages,
-      memories: currentMemories, // Incluir memórias para contextualizar
-      systemPrompt: `Você é o CaiobaGPT, um assistente de IA prestativo e inteligente. Use as memórias fornecidas para personalizar suas respostas e lembrar de informações importantes sobre o usuário. Seja natural e evite sarcasmo.`
-    };
-
     const response = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
+      body: JSON.stringify({ messages: currentConversationMessages })
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Erro na IA.");
@@ -556,9 +535,6 @@ async function sendMessage(text) {
     removeTypingIndicator();
     currentConversationMessages.push({ role: 'assistant', content: data.response || "Não recebi uma resposta da IA." });
     renderChat();
-
-    // Extrair e salvar memórias
-    extractMemoriesFromConversation();
 
     // Save/update conversation in Firestore
     if (!currentConversationId) {
@@ -628,14 +604,11 @@ onAuthStateChanged(auth, async (user) => {
   renderAuthUI(user);
   if (user) {
     showStatus('Bem-vindo, ' + (user.displayName || 'usuário') + '!');
-    await loadMemories();
     await loadConversations();
   } else {
     currentConversationId = null;
     conversationRef = null;
     currentConversationMessages = [];
-    currentMemories = [];
-    memoryPanel.style.display = 'none';
     renderChat();
     convListEl.innerHTML = "";
     emptySidebarEl.style.display = 'block';
