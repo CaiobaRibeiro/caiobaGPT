@@ -8,13 +8,13 @@
 <style>
 *{box-sizing:border-box}body{margin:0;min-height:100vh;background:#0b1020;color:#f5f7ff;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
 #app-container{display:flex;height:100vh;overflow:hidden}
+/* Sidebar */
 #sidebar{width:280px;background:#111827;border-right:1px solid #26304a;height:100vh;overflow-y:auto;padding:16px;flex-shrink:0;transition:left 0.3s;position:fixed;left:0;top:0;bottom:0;z-index:20}
-@media (max-width: 768px) { #sidebar{left:-300px} #sidebar.open{left:0} }
+#sidebar:not(.open){left:-300px}
 #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:15}
 #sidebar-overlay.show{display:block}
+/* Main area */
 .app{flex:1;max-width:1000px;height:100vh;margin:auto;display:grid;grid-template-rows:auto 1fr auto;min-width:0}
-@media (min-width: 769px) { .app{margin-left:280px} }
-@media (max-width: 768px) { .app{margin-left:0} }
 header{padding:16px 20px;border-bottom:1px solid #26304a;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
 .brand{display:flex;gap:12px;align-items:center}.logo{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;background:#7357ff;font-weight:900}.sub{font-size:12px;color:#8e9ab5}
 .header-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -30,13 +30,14 @@ textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;paddin
 .status{max-width:800px;margin:6px auto 0;color:#7f8ca7;font-size:11px;text-align:right}
 .typing span{display:inline-block;width:6px;height:6px;border-radius:50%;background:#9aa7c0;margin:0 2px;animation:b .8s infinite}.typing span:nth-child(2){animation-delay:.12s}.typing span:nth-child(3){animation-delay:.24s}
 @keyframes b{50%{transform:translateY(-4px);opacity:.4}}
+/* User info / auth */
 #user-info{display:flex;align-items:center;gap:8px}
 #user-info img{width:32px;height:32px;border-radius:50%;object-fit:cover}
 #user-name{font-weight:600;color:#fff}
 #auth-button,#logout-button{padding:8px 12px}
+/* Sidebar content */
 #sidebar h3{margin:0 0 16px;font-size:18px;color:#fff}
-.new-conv-btn{width:100%;margin-bottom:16px;background:#7357ff;border:none;font-weight:600;padding:12px;display:flex;align-items:center;justify-content:center;gap:8px}
-.new-conv-btn:hover{background:#5f45e0}
+.new-conv-btn{width:100%;margin-bottom:16px;background:#7357ff;border:none;font-weight:600;padding:12px}
 .conv-list{list-style:none;padding:0;margin:0}
 .conv-item{display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;cursor:pointer;transition:background 0.2s;border:1px solid transparent}
 .conv-item:hover{background:#1c2940;border-color:#2b3857}
@@ -46,29 +47,54 @@ textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;paddin
 .conv-delete{background:none;border:none;color:#f88;font-size:16px;padding:0 4px}
 .conv-delete:hover{color:#f00}
 .empty-sidebar{color:#7f8ca7;text-align:center;margin-top:20px;font-size:14px}
-#hamburger{display:none}
-@media(max-width:768px){ #hamburger{display:inline-block} }
+/* Memory panel */
+#memory-panel{margin-top:20px;padding-top:16px;border-top:1px solid #26304a}
+#memory-panel h4{margin:0 0 8px;color:#9aa7c0;font-size:14px}
+#memory-list{list-style:none;padding:0;margin:0}
+#memory-list li{background:#1a2540;border-radius:6px;padding:8px;margin-bottom:6px;font-size:12px;color:#c5cde0;display:flex;justify-content:space-between;align-items:center}
+#memory-list .delete-memory{color:#f88;background:none;border:none;font-size:12px;cursor:pointer;padding:0 4px}
+/* Responsive */
+@media(max-width:768px){
+  #sidebar{left:-300px;position:fixed;top:0;bottom:0;z-index:20}
+  #sidebar.open{left:0}
+  #sidebar-overlay.show{display:block}
+  .app{max-width:100%}
+  header{padding:12px}
+}
+@media(max-width:600px){.bubble{max-width:88%}.empty h2{font-size:34px}}
 </style>
 </head>
 <body>
 <div id="app-container">
+  <!-- Sidebar overlay for mobile -->
   <div id="sidebar-overlay"></div>
+
+  <!-- Sidebar -->
   <aside id="sidebar">
     <h3>CaiobaGPT</h3>
-    <button class="new-conv-btn" id="new-conv-btn">✏️ Nova conversa</button>
+    <button class="new-conv-btn" id="new-conv-btn">+ Nova conversa</button>
     <ul class="conv-list" id="conv-list"></ul>
     <div class="empty-sidebar" id="empty-sidebar">Nenhuma conversa ainda.</div>
+    
+    <!-- Memórias da IA -->
+    <div id="memory-panel" style="display:none;">
+      <h4>🧠 Memórias da IA</h4>
+      <ul id="memory-list"></ul>
+    </div>
   </aside>
 
+  <!-- Main app -->
   <main class="app">
     <header>
       <div class="brand">
-        <button id="hamburger">☰</button>
+        <button id="hamburger" style="display:none;">☰</button>
         <div class="logo">C</div>
-        <div><b>CaiobaGPT</b><div class="sub">Seu assistente de IA, com personalidade própria.</div></div>
+        <div><b>CaiobaGPT</b><div class="sub">Seu assistente de IA, com memória persistente.</div></div>
       </div>
       <div class="header-actions">
-        <div id="user-info"></div>
+        <div id="user-info">
+          <!-- Auth UI will be inserted here -->
+        </div>
         <button id="clear">Limpar</button>
       </div>
     </header>
@@ -104,7 +130,9 @@ import {
   getDocs,
   query,
   orderBy,
-  serverTimestamp
+  serverTimestamp,
+  arrayUnion,
+  arrayRemove
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -135,14 +163,16 @@ const newConvBtn = document.querySelector("#new-conv-btn");
 const convListEl = document.querySelector("#conv-list");
 const emptySidebarEl = document.querySelector("#empty-sidebar");
 const userInfoEl = document.querySelector("#user-info");
+const memoryPanel = document.querySelector("#memory-panel");
+const memoryListEl = document.querySelector("#memory-list");
 
 // ==================== STATE ====================
 let currentUser = null;
 let currentConversationId = null;
 let currentConversationMessages = [];
 let conversationRef = null;
-let lastUserMessage = "";
-let lastAssistantResponse = ""; // Guarda a última resposta da IA para detectar "Não"
+let currentMemories = []; // Array de memórias da IA
+let memoryDocRef = null; // Referência ao documento de memórias
 
 // ==================== HELPERS ====================
 function formatDate(timestamp) {
@@ -257,33 +287,125 @@ function removeTypingIndicator() {
   document.querySelector("#typing")?.remove();
 }
 
-// ==================== FIREBASE OPERATIONS ====================
-async function saveConversation() {
-  if (!currentUser || !conversationRef) return;
+// ==================== MEMÓRIAS DA IA ====================
+async function loadMemories() {
+  if (!currentUser) {
+    memoryPanel.style.display = 'none';
+    currentMemories = [];
+    return;
+  }
+  const uid = currentUser.uid;
+  memoryDocRef = doc(db, 'users', uid, 'memories', 'data');
   try {
-    if (!currentConversationId) {
-      const title = generateTitle(currentConversationMessages[0]?.content || 'Nova conversa');
-      await setDoc(conversationRef, {
-        id: conversationRef.id,
-        title: title,
-        messages: currentConversationMessages,
-        createdAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-      currentConversationId = conversationRef.id;
+    const docSnap = await getDoc(memoryDocRef);
+    if (docSnap.exists()) {
+      currentMemories = docSnap.data().memories || [];
     } else {
-      await updateDoc(conversationRef, {
-        messages: currentConversationMessages,
-        updatedAt: serverTimestamp()
-      });
+      // Criar documento de memórias vazio
+      await setDoc(memoryDocRef, { memories: [] });
+      currentMemories = [];
     }
-    await loadConversations();
+    renderMemories();
   } catch (error) {
-    console.error('Erro ao salvar conversa:', error);
-    showStatus('Erro ao salvar conversa.');
+    console.error('Erro ao carregar memórias:', error);
+    currentMemories = [];
   }
 }
 
+function renderMemories() {
+  if (!currentUser || currentMemories.length === 0) {
+    memoryPanel.style.display = 'none';
+    return;
+  }
+  memoryPanel.style.display = 'block';
+  memoryListEl.innerHTML = "";
+  currentMemories.forEach((memory, index) => {
+    const li = document.createElement('li');
+    const textSpan = document.createElement('span');
+    textSpan.textContent = memory;
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-memory';
+    deleteBtn.textContent = '✕';
+    deleteBtn.onclick = async () => {
+      await removeMemory(index);
+    };
+    li.append(textSpan, deleteBtn);
+    memoryListEl.appendChild(li);
+  });
+}
+
+async function addMemory(memory) {
+  if (!currentUser || !memory.trim()) return;
+  const memoryText = memory.trim();
+  if (!currentMemories.includes(memoryText)) {
+    currentMemories.push(memoryText);
+    try {
+      await updateDoc(memoryDocRef, {
+        memories: arrayUnion(memoryText)
+      });
+      renderMemories();
+    } catch (error) {
+      console.error('Erro ao adicionar memória:', error);
+      // Rollback
+      currentMemories.pop();
+    }
+  }
+}
+
+async function removeMemory(index) {
+  if (!currentUser) return;
+  const memoryToRemove = currentMemories[index];
+  currentMemories.splice(index, 1);
+  try {
+    await updateDoc(memoryDocRef, {
+      memories: arrayRemove(memoryToRemove)
+    });
+    renderMemories();
+  } catch (error) {
+    console.error('Erro ao remover memória:', error);
+    // Rollback
+    currentMemories.splice(index, 0, memoryToRemove);
+  }
+}
+
+// ==================== EXTRAÇÃO DE MEMÓRIAS ====================
+function extractMemoriesFromConversation() {
+  if (!currentUser || currentConversationMessages.length < 2) return;
+  
+  // Extrair informações importantes da conversa
+  const userMessages = currentConversationMessages.filter(m => m.role === 'user');
+  const assistantMessages = currentConversationMessages.filter(m => m.role === 'assistant');
+  
+  // Padrões para identificar informações relevantes
+  const patterns = [
+    // Nome do usuário
+    /meu nome é ([^.!?]+)/i,
+    /me chamo ([^.!?]+)/i,
+    /pode me chamar de ([^.!?]+)/i,
+    // Preferências
+    /eu (gosto|prefiro|adoro|amo) ([^.!?]+)/i,
+    /minha (cor|comida|música|banda|filme|série|jogo) (favorita|preferida) é ([^.!?]+)/i,
+    // Informações pessoais
+    /eu (trabalho|estudo|moro|sou) ([^.!?]+)/i,
+    /sou (desenvolvedor|programador|estudante|designer|professor) ([^.!?]+)/i,
+    // Objetivos
+    /meu objetivo é ([^.!?]+)/i,
+    /quero (aprender|estudar|desenvolver|criar) ([^.!?]+)/i
+  ];
+  
+  for (const msg of userMessages) {
+    const text = msg.content;
+    for (const pattern of patterns) {
+      const match = text.match(pattern);
+      if (match) {
+        const memoryText = `${match[0].trim()}`;
+        addMemory(memoryText);
+      }
+    }
+  }
+}
+
+// ==================== FIREBASE OPERATIONS ====================
 async function loadConversations() {
   if (!currentUser) {
     convListEl.innerHTML = "";
@@ -348,13 +470,6 @@ async function openConversation(conversationId) {
       currentConversationId = conversationId;
       conversationRef = docRef;
       currentConversationMessages = docSnap.data().messages || [];
-      // Atualiza a última resposta da IA se existir
-      for (let i = currentConversationMessages.length - 1; i >= 0; i--) {
-        if (currentConversationMessages[i].role === 'assistant') {
-          lastAssistantResponse = currentConversationMessages[i].content;
-          break;
-        }
-      }
       renderChat();
       showStatus('Conversa carregada.');
       document.querySelectorAll('.conv-item').forEach(el => {
@@ -378,7 +493,6 @@ async function deleteConversation(conversationId) {
       currentConversationId = null;
       conversationRef = null;
       currentConversationMessages = [];
-      lastAssistantResponse = "";
       renderChat();
       showStatus('Conversa excluída.');
     }
@@ -393,15 +507,13 @@ function startNewConversation() {
   currentConversationId = null;
   conversationRef = null;
   currentConversationMessages = [];
-  lastUserMessage = "";
-  lastAssistantResponse = "";
   renderChat();
   closeSidebar();
   showStatus('Nova conversa iniciada.');
   document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
 }
 
-// ==================== SEND MESSAGE (com todas as regras) ====================
+// ==================== SEND MESSAGE ====================
 async function sendMessage(text) {
   text = text.trim();
   if (!text) return;
@@ -412,31 +524,7 @@ async function sendMessage(text) {
     return;
   }
 
-  // ==================== REGRA: PERGUNTAR O MOTIVO DO "NÃO" ====================
-  const lowerText = text.toLowerCase();
-  const isAskingWhy = lowerText.includes('por que') || lowerText.includes('porque') || lowerText.includes('motivo') || lowerText.includes('razão');
-  const lastResponseIsNo = lastAssistantResponse.includes('Não🫩 ✌️') || lastAssistantResponse.includes('Passou de duas linhas não leio mais');
-
-  if (isAskingWhy && lastResponseIsNo) {
-    const response = 'Porque eu quero son🥀?';
-    // Adiciona a pergunta do usuário
-    if (!currentConversationId) {
-      conversationRef = doc(collection(db, 'users', currentUser.uid, 'conversations'));
-      currentConversationMessages = [{ role: 'user', content: text }];
-    } else {
-      currentConversationMessages.push({ role: 'user', content: text });
-    }
-    currentConversationMessages.push({ role: 'assistant', content: response });
-    lastAssistantResponse = response;
-    renderChat();
-    input.value = "";
-    showStatus('💀 Modo "Son" ativado!');
-    await saveConversation();
-    lastUserMessage = text;
-    return;
-  }
-
-  // Adiciona mensagem do usuário (se não entrou na regra acima)
+  // Add user message to current conversation
   if (!currentConversationId) {
     conversationRef = doc(collection(db, 'users', currentUser.uid, 'conversations'));
     currentConversationMessages = [{ role: 'user', content: text }];
@@ -446,86 +534,52 @@ async function sendMessage(text) {
 
   renderChat();
   input.value = "";
-  showStatus("Processando...");
-
-  // ==================== EASTER EGG: HEY, JARVIS ====================
-  if (lowerText.includes('hey, jarvis') || lowerText.includes('hey jarvis')) {
-    const response = 'Relatórios feitos Senhor Stark!';
-    currentConversationMessages.push({ role: 'assistant', content: response });
-    lastAssistantResponse = response;
-    renderChat();
-    showStatus('⚡ Ativado o modo Jarvis!');
-    await saveConversation();
-    lastUserMessage = text;
-    return;
-  }
-
-  // ==================== REGRA 1: MAIS DE 2 LINHAS ====================
-  const lines = text.split('\n').filter(line => line.trim() !== '');
-  if (lines.length > 2) {
-    const response = 'Passou de duas linhas não leio mais 😤';
-    currentConversationMessages.push({ role: 'assistant', content: response });
-    lastAssistantResponse = response;
-    renderChat();
-    showStatus('📏 Limite de linhas excedido!');
-    await saveConversation();
-    lastUserMessage = text;
-    return;
-  }
-
-  // ==================== REGRA 2: REPETIÇÃO DA PERGUNTA ====================
-  const normalizedCurrent = text.toLowerCase().replace(/\s+/g, ' ').trim();
-  const normalizedLast = lastUserMessage.toLowerCase().replace(/\s+/g, ' ').trim();
-  if (normalizedCurrent === normalizedLast && lastUserMessage !== '') {
-    const response = 'Não🫩 ✌️';
-    currentConversationMessages.push({ role: 'assistant', content: response });
-    lastAssistantResponse = response;
-    renderChat();
-    showStatus('😂 Já respondi isso!');
-    await saveConversation();
-    lastUserMessage = text;
-    return;
-  }
-
-  // ==================== REGRA 3: RESPOSTA ALEATÓRIA "NÃO🫩 ✌️" ====================
-  if (Math.random() < 0.15) {
-    const response = 'Não🫩 ✌️';
-    currentConversationMessages.push({ role: 'assistant', content: response });
-    lastAssistantResponse = response;
-    renderChat();
-    showStatus('🤷‍♂️ Sarcasmo ativado!');
-    await saveConversation();
-    lastUserMessage = text;
-    return;
-  }
-
-  // ==================== FLUXO NORMAL: CHAMAR A IA ====================
   showStatus("CaiobaGPT está pensando...");
   typingIndicator();
 
   try {
-    const systemPrompt = "Você é o CaiobaGPT, um assistente de IA com humor sarcástico e irônico. Responda com um tom de deboche leve, mas sem ser ofensivo. Seja criativo e use respostas curtas e engraçadas quando possível. Mantenha o sarcasmo sempre presente.";
-    const messagesWithSystem = [
-      { role: 'system', content: systemPrompt },
-      ...currentConversationMessages
-    ];
+    // Enviar mensagens e memórias para o Worker
+    const payload = {
+      messages: currentConversationMessages,
+      memories: currentMemories, // Incluir memórias para contextualizar
+      systemPrompt: `Você é o CaiobaGPT, um assistente de IA prestativo e inteligente. Use as memórias fornecidas para personalizar suas respostas e lembrar de informações importantes sobre o usuário. Seja natural e evite sarcasmo.`
+    };
 
     const response = await fetch(WORKER_URL, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ messages: messagesWithSystem })
+      body: JSON.stringify(payload)
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Erro na IA.");
 
     removeTypingIndicator();
-    const aiResponse = data.response || "Não recebi uma resposta da IA.";
-    currentConversationMessages.push({ role: 'assistant', content: aiResponse });
-    lastAssistantResponse = aiResponse;
+    currentConversationMessages.push({ role: 'assistant', content: data.response || "Não recebi uma resposta da IA." });
     renderChat();
-    await saveConversation();
-    showStatus('Conversa salva.');
-    lastUserMessage = text;
+
+    // Extrair e salvar memórias
+    extractMemoriesFromConversation();
+
+    // Save/update conversation in Firestore
+    if (!currentConversationId) {
+      const title = generateTitle(text);
+      await setDoc(conversationRef, {
+        id: conversationRef.id,
+        title: title,
+        messages: currentConversationMessages,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp()
+      });
+      currentConversationId = conversationRef.id;
+      showStatus('Conversa salva no Firestore.');
+    } else {
+      await updateDoc(conversationRef, {
+        messages: currentConversationMessages,
+        updatedAt: serverTimestamp()
+      });
+      showStatus('Conversa atualizada.');
+    }
+    await loadConversations();
   } catch (error) {
     removeTypingIndicator();
     if (currentConversationMessages.length > 0 && currentConversationMessages[currentConversationMessages.length - 1].role === 'user') {
@@ -574,13 +628,14 @@ onAuthStateChanged(auth, async (user) => {
   renderAuthUI(user);
   if (user) {
     showStatus('Bem-vindo, ' + (user.displayName || 'usuário') + '!');
+    await loadMemories();
     await loadConversations();
   } else {
     currentConversationId = null;
     conversationRef = null;
     currentConversationMessages = [];
-    lastUserMessage = "";
-    lastAssistantResponse = "";
+    currentMemories = [];
+    memoryPanel.style.display = 'none';
     renderChat();
     convListEl.innerHTML = "";
     emptySidebarEl.style.display = 'block';
@@ -594,7 +649,6 @@ function init() {
     hamburgerBtn.style.display = 'inline-block';
   } else {
     hamburgerBtn.style.display = 'none';
-    closeSidebar();
   }
   renderChat();
   renderAuthUI(null);
