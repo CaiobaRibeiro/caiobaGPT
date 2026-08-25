@@ -10,7 +10,7 @@
         #app-container{display:flex;height:100vh;overflow:hidden}
         /* Sidebar */
         #sidebar{width:300px;background:#111827;border-right:1px solid #26304a;height:100vh;overflow-y:auto;padding:16px;flex-shrink:0;transition:left 0.3s;position:fixed;left:0;top:0;bottom:0;z-index:20}
-        #sidebar:not(.open){left:-320px}
+        #sidebar.closed{left:-320px}
         #sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:15}
         #sidebar-overlay.show{display:block}
         /* Main area */
@@ -57,13 +57,13 @@
         .rename-confirm,.rename-cancel{background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:4px 6px;border-radius:4px}
         .rename-confirm{color:#4caf50}
         .rename-cancel{color:#f88}
-        /* Responsive - hamburger button */
-        #hamburger{display:none;background:none;border:none;color:#fff;font-size:24px;padding:4px;cursor:pointer}
+        /* Hamburger button - sempre visível */
+        #hamburger{display:inline-block;background:none;border:none;color:#fff;font-size:24px;padding:4px;cursor:pointer}
+        /* Responsive */
         @media(max-width:768px){
-            #hamburger{display:block !important;}
-            #sidebar{left:-320px;position:fixed;top:0;bottom:0;z-index:20}
-            #sidebar.open{left:0}
-            #sidebar-overlay.show{display:block}
+            /* Em mobile, sidebar começa fechada (classe closed adicionada via JS) */
+            #sidebar.closed{left:-320px}
+            #sidebar:not(.closed){left:0}
             .app{max-width:100%}
             header{padding:12px}
         }
@@ -72,10 +72,8 @@
 </head>
 <body>
     <div id="app-container">
-        <!-- Sidebar overlay for mobile -->
         <div id="sidebar-overlay"></div>
 
-        <!-- Sidebar -->
         <aside id="sidebar">
             <h3>CaiobaGPT</h3>
             
@@ -93,7 +91,6 @@
             <div class="empty-sidebar" id="empty-sidebar">Nenhuma conversa ainda.</div>
         </aside>
 
-        <!-- Main app -->
         <main class="app">
             <header>
                 <div class="brand">
@@ -193,15 +190,19 @@
             statusEl.textContent = message;
         }
 
-        function toggleSidebar(forceOpen) {
-            const isOpen = sidebar.classList.contains('open');
-            const shouldOpen = forceOpen !== undefined ? forceOpen : !isOpen;
-            sidebar.classList.toggle('open', shouldOpen);
-            sidebarOverlay.classList.toggle('show', shouldOpen);
+        function toggleSidebar() {
+            const isClosed = sidebar.classList.contains('closed');
+            if (isClosed) {
+                sidebar.classList.remove('closed');
+                sidebarOverlay.classList.add('show');
+            } else {
+                sidebar.classList.add('closed');
+                sidebarOverlay.classList.remove('show');
+            }
         }
 
         function closeSidebar() {
-            sidebar.classList.remove('open');
+            sidebar.classList.add('closed');
             sidebarOverlay.classList.remove('show');
         }
 
@@ -600,11 +601,30 @@
 
         // ==================== INITIAL SETUP ====================
         function init() {
-            // Não precisamos mais esconder o hambúrguer via JS; o CSS já controla a exibição
+            // Adiciona a classe 'closed' se a tela for pequena (mobile)
+            if (window.innerWidth <= 768) {
+                sidebar.classList.add('closed');
+            }
             renderChat();
             renderAuthUI(null);
             showStatus('Histórico salvo neste navegador (para salvar na nuvem, faça login).');
         }
+
+        // Ajuste ao redimensionar
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                // Em telas grandes, remove 'closed' para mostrar a sidebar
+                sidebar.classList.remove('closed');
+                sidebarOverlay.classList.remove('show');
+            } else {
+                // Em telas pequenas, se a sidebar não estiver aberta manualmente, feche
+                if (!sidebar.classList.contains('closed')) {
+                    // Mantém o estado atual se o usuário abriu manualmente
+                } else {
+                    sidebar.classList.add('closed');
+                }
+            }
+        });
 
         init();
     </script>
