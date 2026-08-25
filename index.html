@@ -57,11 +57,18 @@
         .rename-confirm,.rename-cancel{background:none;border:none;color:#fff;font-size:14px;cursor:pointer;padding:4px 6px;border-radius:4px}
         .rename-confirm{color:#4caf50}
         .rename-cancel{color:#f88}
-        /* Hamburger button - sempre visível */
-        #hamburger{display:inline-block;background:none;border:none;color:#fff;font-size:24px;padding:4px;cursor:pointer}
+        /* Configurações / Pronomes */
+        .settings-section{margin-top:20px;padding-top:16px;border-top:1px solid #26304a}
+        .settings-btn{background:none;border:1px solid #2b3857;color:#9aa7c0;font-size:13px;padding:8px 12px;border-radius:8px;cursor:pointer;width:100%;text-align:left}
+        .settings-btn:hover{background:#1c2940;color:#fff}
+        .settings-panel{margin-top:10px;padding:12px;background:#1a2540;border-radius:8px}
+        .settings-panel label{display:block;color:#c5cde0;font-size:12px;margin-bottom:4px}
+        .settings-panel input{width:100%;background:#121a2d;border:1px solid #2b3857;color:#fff;border-radius:6px;padding:8px;margin-bottom:10px;font-size:14px}
+        .settings-save{background:#7357ff;border:none;color:#fff;padding:8px 12px;border-radius:6px;cursor:pointer;width:100%}
+        .settings-save:hover{background:#5f45e0}
         /* Responsive */
+        #hamburger{display:inline-block;background:none;border:none;color:#fff;font-size:24px;padding:4px;cursor:pointer}
         @media(max-width:768px){
-            /* Em mobile, sidebar começa fechada (classe closed adicionada via JS) */
             #sidebar.closed{left:-320px}
             #sidebar:not(.closed){left:0}
             .app{max-width:100%}
@@ -89,6 +96,18 @@
             
             <ul class="conv-list" id="conv-list"></ul>
             <div class="empty-sidebar" id="empty-sidebar">Nenhuma conversa ainda.</div>
+
+            <!-- Seção de configurações -->
+            <div class="settings-section">
+                <button class="settings-btn" id="settings-btn">⚙️ Configurações de pronomes</button>
+                <div class="settings-panel" id="settings-panel" style="display:none;">
+                    <label>Seu pronome (ex: ele, ela, elu)</label>
+                    <input type="text" id="user-pronoun" placeholder="Digite seu pronome">
+                    <label>Pronome do CaiobaGPT (ex: ele, ela, elu)</label>
+                    <input type="text" id="assistant-pronoun" placeholder="Digite o pronome da IA">
+                    <button class="settings-save" id="save-pronouns">Salvar</button>
+                </div>
+            </div>
         </aside>
 
         <main class="app">
@@ -166,6 +185,11 @@
         const convListEl = document.querySelector("#conv-list");
         const emptySidebarEl = document.querySelector("#empty-sidebar");
         const userInfoEl = document.querySelector("#user-info");
+        const settingsBtn = document.querySelector("#settings-btn");
+        const settingsPanel = document.querySelector("#settings-panel");
+        const userPronounInput = document.querySelector("#user-pronoun");
+        const assistantPronounInput = document.querySelector("#assistant-pronoun");
+        const savePronounsBtn = document.querySelector("#save-pronouns");
 
         // ==================== STATE ====================
         let currentUser = null;
@@ -173,6 +197,7 @@
         let currentConversationMessages = [];
         let conversationRef = null;
         let isRenaming = false;
+        let settings = { userPronoun: '', assistantPronoun: '' }; // pronomes atuais
 
         // ==================== HELPERS ====================
         function formatDate(timestamp) {
@@ -247,6 +272,43 @@
                     }
                 };
                 userInfoEl.appendChild(loginBtn);
+            }
+        }
+
+        // ==================== SETTINGS / PRONOUNS ====================
+        async function loadSettings() {
+            if (!currentUser) {
+                settings = { userPronoun: '', assistantPronoun: '' };
+                return;
+            }
+            const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'pronouns');
+            try {
+                const docSnap = await getDoc(settingsRef);
+                if (docSnap.exists()) {
+                    settings = docSnap.data();
+                } else {
+                    settings = { userPronoun: '', assistantPronoun: '' };
+                }
+                userPronounInput.value = settings.userPronoun || '';
+                assistantPronounInput.value = settings.assistantPronoun || '';
+            } catch (error) {
+                console.error('Erro ao carregar configurações:', error);
+                settings = { userPronoun: '', assistantPronoun: '' };
+            }
+        }
+
+        async function saveSettings() {
+            if (!currentUser) return;
+            const userPronoun = userPronounInput.value.trim();
+            const assistantPronoun = assistantPronounInput.value.trim();
+            settings = { userPronoun, assistantPronoun };
+            const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'pronouns');
+            try {
+                await setDoc(settingsRef, settings);
+                showStatus('Pronomes salvos com sucesso.');
+            } catch (error) {
+                console.error('Erro ao salvar pronomes:', error);
+                showStatus('Erro ao salvar pronomes.');
             }
         }
 
@@ -508,10 +570,17 @@
             typingIndicator();
 
             try {
+                // Incluir pronomes e instruções no payload
+                const payload = {
+                    messages: currentConversationMessages,
+                    userPronoun: settings.userPronoun || null,
+                    assistantPronoun: settings.assistantPronoun || null,
+                    systemPrompt: `Você é o CaiobaGPT. Use os pronomes fornecidos para se referir ao usuário e a si mesmo. Pronome do usuário: ${settings.userPronoun || 'não especificado'}. Pronome do CaiobaGPT: ${settings.assistantPronoun || 'não especificado'}. Seja respeitoso e use esses pronomes sempre.`
+                };
                 const response = await fetch(WORKER_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ messages: currentConversationMessages })
+                    body: JSON.stringify(payload)
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || "Erro na IA.");
@@ -581,17 +650,28 @@
 
         newConvBtn.onclick = startNewConversation;
 
+        settingsBtn.onclick = () => {
+            const isVisible = settingsPanel.style.display !== 'none';
+            settingsPanel.style.display = isVisible ? 'none' : 'block';
+        };
+
+        savePronounsBtn.onclick = saveSettings;
+
         // ==================== AUTH STATE LISTENER ====================
         onAuthStateChanged(auth, async (user) => {
             currentUser = user;
             renderAuthUI(user);
             if (user) {
                 showStatus('Bem-vindo, ' + (user.displayName || 'usuário') + '!');
+                await loadSettings();
                 await loadConversations();
             } else {
                 currentConversationId = null;
                 conversationRef = null;
                 currentConversationMessages = [];
+                settings = { userPronoun: '', assistantPronoun: '' };
+                userPronounInput.value = '';
+                assistantPronounInput.value = '';
                 renderChat();
                 convListEl.innerHTML = "";
                 emptySidebarEl.style.display = 'block';
@@ -601,7 +681,6 @@
 
         // ==================== INITIAL SETUP ====================
         function init() {
-            // Adiciona a classe 'closed' se a tela for pequena (mobile)
             if (window.innerWidth <= 768) {
                 sidebar.classList.add('closed');
             }
@@ -610,16 +689,13 @@
             showStatus('Histórico salvo neste navegador (para salvar na nuvem, faça login).');
         }
 
-        // Ajuste ao redimensionar
         window.addEventListener('resize', () => {
             if (window.innerWidth > 768) {
-                // Em telas grandes, remove 'closed' para mostrar a sidebar
                 sidebar.classList.remove('closed');
                 sidebarOverlay.classList.remove('show');
             } else {
-                // Em telas pequenas, se a sidebar não estiver aberta manualmente, feche
                 if (!sidebar.classList.contains('closed')) {
-                    // Mantém o estado atual se o usuário abriu manualmente
+                    // mantém estado atual se o usuário abriu manualmente
                 } else {
                     sidebar.classList.add('closed');
                 }
