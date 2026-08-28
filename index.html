@@ -127,7 +127,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, collection, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -147,6 +147,16 @@
         // Mantém a sessão do Google salva mesmo após recarregar ou reabrir o site.
         try {
             await setPersistence(auth, browserLocalPersistence);
+        try {
+            const redirectResult = await getRedirectResult(auth);
+            if (redirectResult?.user) {
+                showStatus('Login realizado com sucesso.');
+            }
+        } catch (error) {
+            console.error('Erro ao concluir login por redirecionamento:', error);
+            showStatus('Erro ao concluir login: ' + error.message);
+        }
+
         } catch (error) {
             console.error('Erro ao configurar persistência do login:', error);
         }
@@ -240,12 +250,30 @@
                 loginBtn.textContent = 'Entrar com Google';
                 loginBtn.onclick = async () => {
                     const provider = new GoogleAuthProvider();
+                    provider.setCustomParameters({ prompt: 'select_account' });
                     try {
                         await signInWithPopup(auth, provider);
                         showStatus('Login realizado com sucesso.');
                     } catch (error) {
-                        console.error('Login error:', error);
-                        showStatus('Erro ao fazer login: ' + error.message);
+                        console.error('Login popup error:', error);
+
+                        const fallbackErrors = [
+                            'auth/popup-closed-by-user',
+                            'auth/popup-blocked',
+                            'auth/cancelled-popup-request'
+                        ];
+
+                        if (fallbackErrors.includes(error.code)) {
+                            showStatus('Popup interrompido. Tentando login por redirecionamento...');
+                            try {
+                                await signInWithRedirect(auth, provider);
+                            } catch (redirectError) {
+                                console.error('Login redirect error:', redirectError);
+                                showStatus('Erro no login por redirecionamento: ' + redirectError.message);
+                            }
+                        } else {
+                            showStatus('Erro ao fazer login: ' + error.message);
+                        }
                     }
                 };
                 userInfoEl.appendChild(loginBtn);
