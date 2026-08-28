@@ -92,12 +92,15 @@
                 <button class="settings-btn" id="settings-btn">⚙️ Como devemos nos chamar</button>
                 <div class="settings-panel" id="settings-panel" style="display:none;">
                     <label>Como o CaiobaGPT deve chamar você?</label>
-                    <input type="text" id="user-name-pref" maxlength="80" placeholder="Ex: Caio, Caioba, senhor...">
-                    <label>Quais pronomes o CaiobaGPT deve usar para se referir a você?</label>
-                    <input type="text" id="user-pronouns" maxlength="80" placeholder="Ex: ele/dele, ela/dela, elu/delu...">
-                    <label>Quais pronomes você quer usar para se referir ao CaiobaGPT?</label>
-                    <input type="text" id="assistant-pronouns" maxlength="80" placeholder="Ex: ele/dele, ela/dela, elu/delu...">
-                    <button class="settings-save" id="save-pronouns">Salvar preferências</button>
+                    <input type="text" id="user-call-name" placeholder="Ex: Caio, Caioba, senhor...">
+
+                    <label>Quais pronomes o CaiobaGPT deve usar para você?</label>
+                    <input type="text" id="user-pronoun" placeholder="Ex: ele/dele, ela/dela, elu/delu...">
+
+                    <label>Quais pronomes você prefere usar para o CaiobaGPT?</label>
+                    <input type="text" id="assistant-pronoun" placeholder="Ex: ele/dele, ela/dela, elu/delu...">
+
+                    <button class="settings-save" id="save-pronouns" type="button">Salvar preferências</button>
                 </div>
             </div>
         </aside>
@@ -127,7 +130,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, collection, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -144,13 +147,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // Mantém a sessão do Google salva mesmo após recarregar ou reabrir o site.
-        try {
-            await setPersistence(auth, browserLocalPersistence);
-} catch (error) {
-            console.error('Erro ao configurar persistência do login:', error);
-        }
-
         const WORKER_URL = "https://caiobagpt.caiosartor01.workers.dev";
         const chatEl = document.querySelector("#chat");
         const form = document.querySelector("#form");
@@ -166,9 +162,9 @@
         const userInfoEl = document.querySelector("#user-info");
         const settingsBtn = document.querySelector("#settings-btn");
         const settingsPanel = document.querySelector("#settings-panel");
-        const userNamePrefInput = document.querySelector("#user-name-pref");
-        const userPronounsInput = document.querySelector("#user-pronouns");
-        const assistantPronounsInput = document.querySelector("#assistant-pronouns");
+        const userCallNameInput = document.querySelector("#user-call-name");
+        const userPronounInput = document.querySelector("#user-pronoun");
+        const assistantPronounInput = document.querySelector("#assistant-pronoun");
         const savePronounsBtn = document.querySelector("#save-pronouns");
 
         let currentUser = null;
@@ -176,8 +172,7 @@
         let currentConversationMessages = [];
         let conversationRef = null;
         let isRenaming = false;
-        let loginInProgress = false;
-        let settings = { userName: '', userPronouns: '', assistantPronouns: '' };
+        let settings = { userCallName: '', userPronoun: '', assistantPronoun: '' };
 
         function formatDate(timestamp) {
             if (!timestamp) return "";
@@ -239,142 +234,82 @@
                 const loginBtn = document.createElement('button');
                 loginBtn.id = 'auth-button';
                 loginBtn.textContent = 'Entrar com Google';
-                loginBtn.type = 'button';
                 loginBtn.onclick = async () => {
-                    if (loginInProgress) {
-                        showStatus('O login já está sendo aberto. Aguarde um instante.');
-                        return;
-                    }
-
-                    loginInProgress = true;
-                    loginBtn.disabled = true;
-                    loginBtn.textContent = 'Abrindo Google...';
-
                     const provider = new GoogleAuthProvider();
-                    provider.setCustomParameters({ prompt: 'select_account' });
-
                     try {
-                        const result = await signInWithPopup(auth, provider);
-
-                        if (result?.user) {
-                            showStatus('Login realizado com sucesso.');
-                        }
+                        await signInWithPopup(auth, provider);
+                        showStatus('Login realizado com sucesso.');
                     } catch (error) {
                         console.error('Login error:', error);
-
-                        if (error.code === 'auth/cancelled-popup-request') {
-                            showStatus('Uma tentativa de login já estava em andamento. Tente novamente uma única vez.');
-                        } else if (error.code === 'auth/popup-closed-by-user') {
-                            showStatus('A janela do Google foi fechada antes de concluir o login.');
-                        } else if (error.code === 'auth/popup-blocked') {
-                            showStatus('O navegador bloqueou a janela do Google. Permita pop-ups para este site e tente novamente.');
-                        } else if (error.code === 'auth/unauthorized-domain') {
-                            showStatus('Este domínio ainda não está autorizado no Firebase Authentication.');
-                        } else {
-                            showStatus('Erro ao fazer login: ' + error.message);
-                        }
-                    } finally {
-                        loginInProgress = false;
-
-                        // O botão pode ter sido recriado pelo onAuthStateChanged.
-                        const currentLoginBtn = document.querySelector('#auth-button');
-                        if (currentLoginBtn) {
-                            currentLoginBtn.disabled = false;
-                            currentLoginBtn.textContent = 'Entrar com Google';
-                        }
+                        showStatus('Erro ao fazer login: ' + error.message);
                     }
                 };
                 userInfoEl.appendChild(loginBtn);
             }
         }
 
-        function normalizePreference(value) {
-            return String(value || '')
-                .replace(/[\u0000-\u001F\u007F]/g, ' ')
-                .replace(/\s+/g, ' ')
-                .trim()
-                .slice(0, 80);
-        }
+        async function loadSettings() {
+            const localKey = currentUser ? `caiobagpt_preferences_${currentUser.uid}` : 'caiobagpt_preferences_guest';
 
-        function preferencesStorageKey() {
-            return currentUser ? `caiobagpt_preferences_${currentUser.uid}` : 'caiobagpt_preferences_guest';
-        }
-
-        function applySettingsToInputs() {
-            userNamePrefInput.value = settings.userName || '';
-            userPronounsInput.value = settings.userPronouns || '';
-            assistantPronounsInput.value = settings.assistantPronouns || '';
-        }
-
-        function loadLocalSettings() {
             try {
-                const saved = JSON.parse(localStorage.getItem(preferencesStorageKey()) || '{}');
+                const local = JSON.parse(localStorage.getItem(localKey) || '{}');
                 settings = {
-                    userName: normalizePreference(saved.userName || saved.userPronoun || ''),
-                    userPronouns: normalizePreference(saved.userPronouns || ''),
-                    assistantPronouns: normalizePreference(saved.assistantPronouns || saved.assistantPronoun || '')
+                    userCallName: local.userCallName || '',
+                    userPronoun: local.userPronoun || '',
+                    assistantPronoun: local.assistantPronoun || ''
                 };
             } catch {
-                settings = { userName: '', userPronouns: '', assistantPronouns: '' };
+                settings = { userCallName: '', userPronoun: '', assistantPronoun: '' };
             }
-            applySettingsToInputs();
-        }
 
-        function saveLocalSettings() {
-            localStorage.setItem(preferencesStorageKey(), JSON.stringify(settings));
-        }
-
-        async function loadSettings() {
-            loadLocalSettings();
-            if (!currentUser) return;
-
-            const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'pronouns');
-            try {
-                const docSnap = await getDoc(settingsRef);
-                if (docSnap.exists()) {
-                    const data = docSnap.data();
-                    settings = {
-                        // Migra automaticamente o formato antigo, se existir.
-                        userName: normalizePreference(data.userName || data.userPronoun || settings.userName || ''),
-                        userPronouns: normalizePreference(data.userPronouns || settings.userPronouns || ''),
-                        assistantPronouns: normalizePreference(data.assistantPronouns || data.assistantPronoun || settings.assistantPronouns || '')
-                    };
-                    saveLocalSettings();
-                    applySettingsToInputs();
+            if (currentUser) {
+                const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'pronouns');
+                try {
+                    const docSnap = await getDoc(settingsRef);
+                    if (docSnap.exists()) {
+                        const cloud = docSnap.data();
+                        settings = {
+                            userCallName: cloud.userCallName || cloud.displayName || settings.userCallName || '',
+                            userPronoun: cloud.userPronoun || settings.userPronoun || '',
+                            assistantPronoun: cloud.assistantPronoun || settings.assistantPronoun || ''
+                        };
+                        localStorage.setItem(localKey, JSON.stringify(settings));
+                    }
+                } catch (error) {
+                    console.warn('Não foi possível carregar preferências do Firestore. Usando cópia local.', error);
                 }
-            } catch (error) {
-                console.error('Erro ao carregar preferências do Firestore:', error);
-                // O cache local continua funcionando mesmo se as regras do Firestore ainda não permitirem /settings.
-                showStatus('Preferências carregadas deste navegador. A sincronização com a nuvem precisa das regras do Firestore.');
             }
+
+            userCallNameInput.value = settings.userCallName || '';
+            userPronounInput.value = settings.userPronoun || '';
+            assistantPronounInput.value = settings.assistantPronoun || '';
         }
 
         async function saveSettings() {
+            const clean = (value, max = 60) => value.trim().replace(/\s+/g, ' ').slice(0, max);
+
+            const userCallName = clean(userCallNameInput.value);
+            const userPronoun = clean(userPronounInput.value);
+            const assistantPronoun = clean(assistantPronounInput.value);
+
+            settings = { userCallName, userPronoun, assistantPronoun };
+
+            const localKey = currentUser ? `caiobagpt_preferences_${currentUser.uid}` : 'caiobagpt_preferences_guest';
+            localStorage.setItem(localKey, JSON.stringify(settings));
+
             if (!currentUser) {
-                showStatus('Você precisa estar logado para salvar as preferências.');
+                showStatus('Preferências salvas neste navegador. Faça login para sincronizar na nuvem.');
                 return;
             }
 
-            settings = {
-                userName: normalizePreference(userNamePrefInput.value),
-                userPronouns: normalizePreference(userPronounsInput.value),
-                assistantPronouns: normalizePreference(assistantPronounsInput.value)
-            };
-
-            applySettingsToInputs();
-            saveLocalSettings();
-
             const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'pronouns');
+
             try {
-                await setDoc(settingsRef, {
-                    ...settings,
-                    updatedAt: serverTimestamp()
-                }, { merge: true });
-                showStatus('Preferências salvas e sincronizadas com a nuvem!');
+                await setDoc(settingsRef, settings, { merge: true });
+                showStatus('Preferências salvas com sucesso.');
             } catch (error) {
                 console.error('Erro ao salvar preferências no Firestore:', error);
-                showStatus('Preferências salvas neste navegador, mas o Firestore bloqueou a sincronização.');
-                alert('As preferências funcionam neste navegador, mas para sincronizar entre computadores é preciso liberar /users/{uid}/settings nas regras do Firestore.');
+                showStatus('Preferências salvas neste navegador, mas não foi possível sincronizar com o Firestore.');
             }
         }
 
@@ -620,20 +555,26 @@
                 const payload = {
                     messages: currentConversationMessages,
                     preferences: {
-                        userName: settings.userName || null,
-                        userPronouns: settings.userPronouns || null,
-                        assistantPronouns: settings.assistantPronouns || null
+                        userCallName: settings.userCallName || null,
+                        userPronoun: settings.userPronoun || null,
+                        assistantPronoun: settings.assistantPronoun || null
                     },
-                    // Mantidos por compatibilidade com versões antigas do Worker.
-                    userPronoun: settings.userPronouns || null,
-                    assistantPronoun: settings.assistantPronouns || null,
+                    userCallName: settings.userCallName || null,
+                    userPronoun: settings.userPronoun || null,
+                    assistantPronoun: settings.assistantPronoun || null,
                     systemPrompt: [
-                        'Preferências de tratamento do usuário:',
-                        `- Como chamar o usuário: ${settings.userName || 'não especificado'}.`,
-                        `- Pronomes do usuário: ${settings.userPronouns || 'não especificados'}.`,
-                        `- Pronomes escolhidos para o CaiobaGPT: ${settings.assistantPronouns || 'não especificados'}.`,
-                        'Respeite essas preferências quando forem relevantes, sem repetir ou comentar sobre elas desnecessariamente.'
-                    ].join('\n')
+                        'Você é o CaiobaGPT.',
+                        settings.userCallName
+                            ? `Chame o usuário de "${settings.userCallName}" quando for natural.`
+                            : 'O usuário não informou uma forma especial de tratamento.',
+                        settings.userPronoun
+                            ? `Ao se referir ao usuário em terceira pessoa, use os pronomes "${settings.userPronoun}".`
+                            : 'O usuário não informou pronomes.',
+                        settings.assistantPronoun
+                            ? `Quando seus próprios pronomes forem relevantes, respeite a preferência "${settings.assistantPronoun}".`
+                            : 'Não há preferência de pronome para o CaiobaGPT.',
+                        'Não force nomes ou pronomes em toda frase. Use-os apenas quando forem linguisticamente necessários ou naturais.'
+                    ].join(' ')
                 };
                 const response = await fetch(WORKER_URL, {
                     method: "POST",
@@ -718,10 +659,10 @@
                 currentConversationId = null;
                 conversationRef = null;
                 currentConversationMessages = [];
-                settings = { userName: '', userPronouns: '', assistantPronouns: '' };
-                userNamePrefInput.value = '';
-                userPronounsInput.value = '';
-                assistantPronounsInput.value = '';
+                settings = { userCallName: '', userPronoun: '', assistantPronoun: '' };
+                userCallNameInput.value = '';
+                userPronounInput.value = '';
+                assistantPronounInput.value = '';
                 renderChat();
                 convListEl.innerHTML = "";
                 emptySidebarEl.style.display = 'block';
@@ -734,9 +675,8 @@
                 sidebar.classList.add('closed');
             }
             renderChat();
-            // O Firebase decide se o usuário está logado através do onAuthStateChanged.
-            // Não forçamos mais a interface para o estado "deslogado" durante a inicialização.
-            showStatus('Verificando sua conta...');
+            renderAuthUI(null);
+            showStatus('Histórico salvo neste navegador (para salvar na nuvem, faça login).');
         }
 
         window.addEventListener('resize', () => {
