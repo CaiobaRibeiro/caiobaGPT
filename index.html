@@ -127,7 +127,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, doc, collection, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -143,6 +143,13 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        // Mantém a sessão do Google salva mesmo após recarregar ou reabrir o site.
+        try {
+            await setPersistence(auth, browserLocalPersistence);
+        } catch (error) {
+            console.error('Erro ao configurar persistência do login:', error);
+        }
 
         const WORKER_URL = "https://caiobagpt.caiosartor01.workers.dev";
         const chatEl = document.querySelector("#chat");
@@ -691,8 +698,9 @@
                 sidebar.classList.add('closed');
             }
             renderChat();
-            renderAuthUI(null);
-            showStatus('Histórico salvo neste navegador (para salvar na nuvem, faça login).');
+            // O Firebase decide se o usuário está logado através do onAuthStateChanged.
+            // Não forçamos mais a interface para o estado "deslogado" durante a inicialização.
+            showStatus('Verificando sua conta...');
         }
 
         window.addEventListener('resize', () => {
