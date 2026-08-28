@@ -21,8 +21,26 @@
         #chat{overflow:auto;padding:24px 14px}.empty{text-align:center;margin:12vh auto;max-width:650px}.empty h2{font-size:42px;margin:0 0 10px}.empty p{color:#9aa7c0}
         .suggestions{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin-top:20px}.message{max-width:800px;margin:16px auto;display:flex;gap:10px}.message.user{justify-content:flex-end}
         .avatar{width:32px;height:32px;flex:none;border-radius:9px;background:#19233b;display:grid;place-items:center;font-weight:800}
-        .bubble{max-width:80%;padding:12px 15px;border:1px solid #2a3550;background:#152039;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.55}
+        .bubble{max-width:80%;padding:12px 15px;border:1px solid #2a3550;background:#152039;border-radius:16px;white-space:normal;overflow-wrap:anywhere;line-height:1.55}.message.user .bubble{white-space:pre-wrap}
         .user .bubble{background:#26385f}.user .avatar{order:2}form{padding:12px 14px 18px;border-top:1px solid #26304a}
+        .markdown-body p{margin:0 0 10px}.markdown-body p:last-child{margin-bottom:0}
+        .markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{margin:16px 0 8px;line-height:1.25}
+        .markdown-body h1:first-child,.markdown-body h2:first-child,.markdown-body h3:first-child{margin-top:0}
+        .markdown-body h1{font-size:1.45em}.markdown-body h2{font-size:1.3em}.markdown-body h3{font-size:1.15em}
+        .markdown-body ul,.markdown-body ol{margin:8px 0 10px 22px;padding:0}
+        .markdown-body li{margin:4px 0}
+        .markdown-body strong{font-weight:800;color:#fff}
+        .markdown-body em{font-style:italic}
+        .markdown-body blockquote{margin:10px 0;padding:8px 12px;border-left:3px solid #7357ff;background:#111a2f;color:#c8d1e4;border-radius:0 8px 8px 0}
+        .markdown-body code{font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;background:#0c1324;border:1px solid #26304a;border-radius:5px;padding:2px 5px;font-size:.92em}
+        .markdown-body pre{margin:12px 0;padding:12px;background:#090f1d;border:1px solid #26304a;border-radius:10px;overflow:auto}
+        .markdown-body pre code{display:block;background:none;border:0;padding:0;white-space:pre;overflow-wrap:normal}
+        .markdown-body a{color:#9b8cff;text-decoration:underline;text-underline-offset:2px}
+        .markdown-body hr{border:0;border-top:1px solid #2a3550;margin:16px 0}
+        .markdown-body table{width:100%;border-collapse:collapse;margin:12px 0;display:block;overflow-x:auto}
+        .markdown-body th,.markdown-body td{border:1px solid #2a3550;padding:7px 9px;text-align:left}
+        .markdown-body th{background:#111a2f}
+
         .composer{max-width:800px;margin:auto;display:flex;gap:8px;padding:8px;background:#121a2d;border:1px solid #2a3550;border-radius:16px}
         textarea{flex:1;background:none;color:#fff;border:0;outline:0;resize:none;padding:10px;font:inherit;max-height:150px}#send{background:#7357ff;font-weight:800}
         .status{max-width:800px;margin:6px auto 0;color:#7f8ca7;font-size:11px;text-align:right}
@@ -128,6 +146,10 @@
         </main>
     </div>
 
+    <!-- Markdown para as respostas do CaiobaGPT -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
@@ -146,6 +168,13 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+
+        if (window.marked) {
+            window.marked.setOptions({
+                gfm: true,
+                breaks: true
+            });
+        }
 
         const WORKER_URL = "https://caiobagpt.caiosartor01.workers.dev";
         const chatEl = document.querySelector("#chat");
@@ -313,6 +342,42 @@
             }
         }
 
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function renderMarkdown(text) {
+            const source = String(text ?? "");
+
+            // Se algum CDN estiver indisponível, o chat continua funcionando
+            // em texto puro em vez de quebrar a interface.
+            if (!window.marked || !window.DOMPurify) {
+                return escapeHtml(source).replace(/\n/g, "<br>");
+            }
+
+            const parsed = window.marked.parse(source, {
+                gfm: true,
+                breaks: true
+            });
+
+            // Nunca injeta HTML do modelo diretamente sem sanitizar.
+            return window.DOMPurify.sanitize(parsed, {
+                USE_PROFILES: { html: true }
+            });
+        }
+
+        function prepareMarkdownLinks(container) {
+            container.querySelectorAll("a").forEach(link => {
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+            });
+        }
+
         function renderChat() {
             chatEl.innerHTML = "";
             if (!currentConversationMessages.length) {
@@ -334,7 +399,16 @@
                 avatar.textContent = m.role === "user" ? "V" : "C";
                 const bubble = document.createElement("div");
                 bubble.className = "bubble";
-                bubble.textContent = m.content;
+
+                if (m.role === "assistant") {
+                    bubble.classList.add("markdown-body");
+                    bubble.innerHTML = renderMarkdown(m.content);
+                    prepareMarkdownLinks(bubble);
+                } else {
+                    // Mensagens do usuário continuam como texto puro por segurança.
+                    bubble.textContent = m.content;
+                }
+
                 row.append(avatar, bubble);
                 chatEl.append(row);
             }
