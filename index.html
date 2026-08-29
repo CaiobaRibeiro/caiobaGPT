@@ -153,7 +153,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, collection, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, collection, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBAiXd7T_FsYW260mtO3UYFpCsxJpn4Gco",
@@ -607,6 +607,154 @@
             document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
         }
 
+        // ============================================================
+        // MEMÓRIA DE LONGO PRAZO - FIRESTORE
+        // ============================================================
+
+        const MEMORY_CATEGORIES = new Set([
+            "preference",
+            "project",
+            "interest",
+            "goal",
+            "personalization",
+            "other"
+        ]);
+
+        function normalizeMemoryText(value) {
+            return String(value || "")
+                .trim()
+                .replace(/\s+/g, " ")
+                .slice(0, 300);
+        }
+
+        function createMemoryKey(text) {
+            return normalizeMemoryText(text)
+                .toLocaleLowerCase("pt-BR")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^\p{L}\p{N}\s]/gu, "")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 300);
+        }
+
+        function containsSensitiveMemorySignal(text) {
+            const value = String(text || "").toLocaleLowerCase("pt-BR");
+
+            const blockedPatterns = [
+                /\bsenha\b/,
+                /\bpassword\b/,
+                /\bpin\b/,
+                /\btoken\b/,
+                /\bapi[\s_-]?key\b/,
+                /\bchave privada\b/,
+                /\bprivate key\b/,
+                /\bsecret key\b/,
+                /\bcart[aã]o de cr[eé]dito\b/,
+                /\bn[uú]mero do cart[aã]o\b/,
+                /\bcvv\b/,
+                /\bcpf\b/,
+                /\brg\b/,
+                /\bpassaporte\b/,
+                /\bendere[cç]o completo\b/,
+                /\bcoordenadas\b/
+            ];
+
+            return blockedPatterns.some(pattern => pattern.test(value));
+        }
+
+        function normalizeMemoryCandidate(candidate) {
+            if (!candidate || candidate.shouldSave !== true) return null;
+
+            const text = normalizeMemoryText(candidate.text);
+            if (!text || containsSensitiveMemorySignal(text)) return null;
+
+            const category = MEMORY_CATEGORIES.has(candidate.category)
+                ? candidate.category
+                : "other";
+
+            const rawImportance = Number(candidate.importance);
+            const importance = Number.isFinite(rawImportance)
+                ? Math.min(10, Math.max(1, Math.round(rawImportance)))
+                : 5;
+
+            const normalizedText = createMemoryKey(text);
+            if (!normalizedText) return null;
+
+            return {
+                text,
+                normalizedText,
+                category,
+                importance
+            };
+        }
+
+        async function saveMemoryCandidate(candidate) {
+            if (!currentUser) return { status: "ignored" };
+
+            const memory = normalizeMemoryCandidate(candidate);
+            if (!memory) return { status: "ignored" };
+
+            const memoriesRef = collection(
+                db,
+                "users",
+                currentUser.uid,
+                "memories"
+            );
+
+            try {
+                // Evita salvar a mesma memória várias vezes.
+                const duplicateQuery = query(
+                    memoriesRef,
+                    where("normalizedText", "==", memory.normalizedText)
+                );
+
+                const duplicateSnapshot = await getDocs(duplicateQuery);
+
+                if (!duplicateSnapshot.empty) {
+                    const existingDoc = duplicateSnapshot.docs[0];
+                    const existingData = existingDoc.data();
+
+                    await updateDoc(existingDoc.ref, {
+                        text: memory.text,
+                        category: memory.category,
+                        importance: Math.max(
+                            Number(existingData.importance) || 1,
+                            memory.importance
+                        ),
+                        updatedAt: serverTimestamp()
+                    });
+
+                    console.log("Memória existente atualizada:", memory);
+                    return { status: "updated", memory };
+                }
+
+                const memoryRef = doc(memoriesRef);
+
+                await setDoc(memoryRef, {
+                    id: memoryRef.id,
+                    text: memory.text,
+                    normalizedText: memory.normalizedText,
+                    category: memory.category,
+                    importance: memory.importance,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
+
+                console.log("Nova memória salva no Firestore:", memory);
+                return { status: "saved", memory };
+
+            } catch (error) {
+                console.error("Erro ao salvar memória no Firestore:", error);
+
+                // A memória nunca deve impedir a conversa de funcionar.
+                return {
+                    status: "error",
+                    error
+                };
+            }
+        }
+
         async function sendMessage(text) {
             text = text.trim();
             if (!text) return;
@@ -657,9 +805,22 @@
                 });
                 const data = await response.json();
                 if (!response.ok) throw new Error(data.error || "Erro na IA.");
+
                 removeTypingIndicator();
-                currentConversationMessages.push({ role: 'assistant', content: data.response || "Não recebi uma resposta da IA." });
+
+                currentConversationMessages.push({
+                    role: 'assistant',
+                    content: data.response || "Não recebi uma resposta da IA."
+                });
+
                 renderChat();
+
+                // PASSO 3.3:
+                // Se o Worker detectou algo útil para lembrar,
+                // salva automaticamente na conta do usuário no Firestore.
+                const memoryResult = await saveMemoryCandidate(
+                    data.memoryCandidate
+                );
                 if (!currentConversationId) {
                     const title = generateTitle(text);
                     await setDoc(conversationRef, {
@@ -670,13 +831,29 @@
                         updatedAt: serverTimestamp()
                     });
                     currentConversationId = conversationRef.id;
-                    showStatus('Conversa salva no Firestore.');
+                    if (memoryResult.status === "saved") {
+                        showStatus('Conversa salva • nova memória salva no Firestore.');
+                    } else if (memoryResult.status === "updated") {
+                        showStatus('Conversa salva • memória existente atualizada.');
+                    } else if (memoryResult.status === "error") {
+                        showStatus('Conversa salva • não foi possível salvar a memória.');
+                    } else {
+                        showStatus('Conversa salva no Firestore.');
+                    }
                 } else {
                     await updateDoc(conversationRef, {
                         messages: currentConversationMessages,
                         updatedAt: serverTimestamp()
                     });
-                    showStatus('Conversa atualizada.');
+                    if (memoryResult.status === "saved") {
+                        showStatus('Conversa atualizada • nova memória salva no Firestore.');
+                    } else if (memoryResult.status === "updated") {
+                        showStatus('Conversa atualizada • memória existente atualizada.');
+                    } else if (memoryResult.status === "error") {
+                        showStatus('Conversa atualizada • não foi possível salvar a memória.');
+                    } else {
+                        showStatus('Conversa atualizada.');
+                    }
                 }
                 await loadConversations();
             } catch (error) {
