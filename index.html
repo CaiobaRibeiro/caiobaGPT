@@ -153,7 +153,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, doc, collection, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, doc, collection, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, where, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         const firebaseConfig = {
             apiKey: "AIzaSyBAiXd7T_FsYW260mtO3UYFpCsxJpn4Gco",
@@ -202,6 +202,13 @@
         let conversationRef = null;
         let isRenaming = false;
         let settings = { userCallName: '', userPronoun: '', assistantPronoun: '' };
+
+        // PASSO 3.4 - cache local temporário para evitar ler o Firestore
+        // em toda mensagem. As memórias continuam armazenadas no Firebase.
+        let memoryCache = [];
+        let memoryCacheLoadedAt = 0;
+        const MEMORY_CACHE_MS = 5 * 60 * 1000;
+        const MAX_MEMORIES_FOR_AI = 20;
 
         function formatDate(timestamp) {
             if (!timestamp) return "";
@@ -726,6 +733,7 @@
                     });
 
                     console.log("Memória existente atualizada:", memory);
+                    memoryCacheLoadedAt = 0;
                     return { status: "updated", memory };
                 }
 
@@ -742,6 +750,7 @@
                 });
 
                 console.log("Nova memória salva no Firestore:", memory);
+                memoryCacheLoadedAt = 0;
                 return { status: "saved", memory };
 
             } catch (error) {
@@ -752,6 +761,82 @@
                     status: "error",
                     error
                 };
+            }
+        }
+
+        async function loadMemoriesForAI(force = false) {
+            if (!currentUser) {
+                memoryCache = [];
+                memoryCacheLoadedAt = 0;
+                return [];
+            }
+
+            const cacheIsFresh =
+                !force &&
+                memoryCacheLoadedAt > 0 &&
+                (Date.now() - memoryCacheLoadedAt) < MEMORY_CACHE_MS;
+
+            if (cacheIsFresh) {
+                return memoryCache;
+            }
+
+            try {
+                const memoriesRef = collection(
+                    db,
+                    "users",
+                    currentUser.uid,
+                    "memories"
+                );
+
+                // Pega no máximo as 20 memórias mais importantes.
+                // Um único orderBy não exige índice composto.
+                const memoriesQuery = query(
+                    memoriesRef,
+                    orderBy("importance", "desc"),
+                    limit(MAX_MEMORIES_FOR_AI)
+                );
+
+                const snapshot = await getDocs(memoriesQuery);
+
+                memoryCache = snapshot.docs
+                    .map(docSnap => {
+                        const data = docSnap.data() || {};
+                        const text = normalizeMemoryText(data.text);
+
+                        if (!text || containsSensitiveMemorySignal(text)) {
+                            return null;
+                        }
+
+                        const importanceRaw = Number(data.importance);
+                        const importance = Number.isFinite(importanceRaw)
+                            ? Math.min(10, Math.max(1, Math.round(importanceRaw)))
+                            : 5;
+
+                        return {
+                            id: docSnap.id,
+                            text,
+                            category: MEMORY_CATEGORIES.has(data.category)
+                                ? data.category
+                                : "other",
+                            importance
+                        };
+                    })
+                    .filter(Boolean);
+
+                memoryCacheLoadedAt = Date.now();
+
+                console.log(
+                    `Passo 3.4: ${memoryCache.length} memória(s) carregada(s) do Firestore.`,
+                    memoryCache
+                );
+
+                return memoryCache;
+
+            } catch (error) {
+                console.error("Erro ao carregar memórias do Firestore:", error);
+
+                // Se a leitura falhar, a conversa continua normalmente.
+                return memoryCache;
             }
         }
 
@@ -774,8 +859,13 @@
             showStatus("CaiobaGPT está pensando...");
             typingIndicator();
             try {
+                // PASSO 3.4:
+                // Busca as memórias salvas e envia para o Worker.
+                const memoriesForAI = await loadMemoriesForAI();
+
                 const payload = {
                     messages: currentConversationMessages,
+                    memories: memoriesForAI,
                     preferences: {
                         userCallName: settings.userCallName || null,
                         userPronoun: settings.userPronoun || null,
@@ -905,12 +995,15 @@
             if (user) {
                 showStatus('Bem-vindo, ' + (user.displayName || 'usuário') + '!');
                 await loadSettings();
+                await loadMemoriesForAI(true);
                 await loadConversations();
             } else {
                 currentConversationId = null;
                 conversationRef = null;
                 currentConversationMessages = [];
                 settings = { userCallName: '', userPronoun: '', assistantPronoun: '' };
+                memoryCache = [];
+                memoryCacheLoadedAt = 0;
                 userCallNameInput.value = '';
                 userPronounInput.value = '';
                 assistantPronounInput.value = '';
