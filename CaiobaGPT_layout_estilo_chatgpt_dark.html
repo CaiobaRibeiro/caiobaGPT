@@ -1,0 +1,1698 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Início - Sala de Aula</title>
+    <link rel="icon" href="https://ssl.gstatic.com/classroom/favicon.png">
+
+    <style>
+        :root{
+            --bg:#212121;
+            --sidebar:#171717;
+            --surface:#2f2f2f;
+            --surface-hover:#383838;
+            --surface-soft:#262626;
+            --text:#ececec;
+            --muted:#a9a9a9;
+            --border:#3a3a3a;
+            --danger:#ff7b7b;
+            --sidebar-width:260px;
+            --content-width:780px;
+        }
+
+        *{box-sizing:border-box}
+
+        html,body{height:100%}
+
+        body{
+            margin:0;
+            min-height:100vh;
+            min-height:100dvh;
+            background:var(--bg);
+            color:var(--text);
+            font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+            -webkit-font-smoothing:antialiased;
+        }
+
+        button,textarea,input{font:inherit}
+
+        button{cursor:pointer}
+
+        #app-container{
+            min-height:100vh;
+            min-height:100dvh;
+            background:var(--bg);
+        }
+
+        /* =========================
+           SIDEBAR
+        ========================== */
+        #sidebar{
+            position:fixed;
+            inset:0 auto 0 0;
+            width:var(--sidebar-width);
+            height:100vh;
+            height:100dvh;
+            padding:10px;
+            background:var(--sidebar);
+            border-right:1px solid rgba(255,255,255,.04);
+            display:flex;
+            flex-direction:column;
+            overflow:hidden;
+            z-index:30;
+            transition:transform .22s ease;
+        }
+
+        #sidebar.closed{
+            transform:translateX(-100%);
+        }
+
+        #sidebar h3{
+            margin:7px 9px 12px;
+            color:var(--text);
+            font-size:15px;
+            font-weight:650;
+            letter-spacing:-.01em;
+        }
+
+        .new-conv-btn{
+            width:100%;
+            min-height:42px;
+            display:flex;
+            align-items:center;
+            justify-content:flex-start;
+            gap:10px;
+            padding:10px 11px;
+            margin:0 0 14px;
+            color:var(--text);
+            background:transparent;
+            border:0;
+            border-radius:9px;
+            font-size:14px;
+            font-weight:500;
+        }
+
+        .new-conv-btn:hover{background:#252525}
+
+        .continue-text{
+            margin:8px 10px 6px;
+            color:#8f8f8f;
+            font-size:11px;
+            font-weight:650;
+            letter-spacing:.02em;
+            text-transform:none;
+        }
+
+        .conv-list{
+            list-style:none;
+            padding:0;
+            margin:0;
+            flex:1;
+            min-height:0;
+            overflow-y:auto;
+            scrollbar-width:thin;
+            scrollbar-color:#444 transparent;
+        }
+
+        .conv-item{
+            min-height:38px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:6px;
+            padding:8px 9px;
+            margin:1px 0;
+            border:0;
+            border-radius:8px;
+            background:transparent;
+            transition:background .15s ease;
+            position:relative;
+        }
+
+        .conv-item:hover{background:#252525}
+        .conv-item.active{background:#2a2a2a}
+
+        .conv-title{
+            flex:1;
+            min-width:0;
+            margin:0;
+            color:#ddd;
+            font-size:13px;
+            white-space:nowrap;
+            overflow:hidden;
+            text-overflow:ellipsis;
+        }
+
+        .conv-date{
+            display:none;
+        }
+
+        .conv-actions{
+            display:flex;
+            gap:2px;
+            opacity:0;
+            transition:opacity .15s ease;
+        }
+
+        .conv-item:hover .conv-actions{opacity:1}
+
+        .conv-rename,.conv-delete{
+            padding:4px 5px;
+            border:0;
+            border-radius:6px;
+            background:transparent;
+            color:#a4a4a4;
+            font-size:13px;
+        }
+
+        .conv-rename:hover,.conv-delete:hover{
+            background:#353535;
+            color:#fff;
+        }
+
+        .conv-delete:hover{color:var(--danger)}
+
+        .empty-sidebar{
+            color:#777;
+            text-align:center;
+            margin:16px 8px;
+            font-size:12px;
+        }
+
+        .settings-section{
+            margin-top:10px;
+            padding-top:9px;
+            border-top:1px solid rgba(255,255,255,.07);
+            flex-shrink:0;
+        }
+
+        .settings-btn{
+            width:100%;
+            min-height:40px;
+            padding:9px 10px;
+            border:0;
+            border-radius:8px;
+            background:transparent;
+            color:#c9c9c9;
+            text-align:left;
+            font-size:13px;
+        }
+
+        .settings-btn:hover{
+            background:#252525;
+            color:#fff;
+        }
+
+        .settings-panel{
+            margin-top:7px;
+            padding:10px;
+            background:#202020;
+            border:1px solid #303030;
+            border-radius:10px;
+        }
+
+        .settings-panel label{
+            display:block;
+            margin:0 0 5px;
+            color:#aaa;
+            font-size:11px;
+        }
+
+        .settings-panel input{
+            width:100%;
+            margin:0 0 9px;
+            padding:8px 9px;
+            color:#eee;
+            background:#2b2b2b;
+            border:1px solid #3b3b3b;
+            border-radius:8px;
+            outline:none;
+            font-size:13px;
+        }
+
+        .settings-panel input:focus{border-color:#696969}
+
+        .settings-save{
+            width:100%;
+            padding:8px 10px;
+            color:#111;
+            background:#fff;
+            border:0;
+            border-radius:8px;
+            font-weight:650;
+            font-size:12px;
+        }
+
+        .settings-save:hover{background:#e7e7e7}
+
+        .rename-input{
+            flex:1;
+            min-width:0;
+            padding:6px 7px;
+            color:#fff;
+            background:#303030;
+            border:1px solid #555;
+            border-radius:6px;
+            outline:none;
+            font-size:13px;
+        }
+
+        .rename-actions{display:flex;gap:2px}
+
+        .rename-confirm,.rename-cancel{
+            padding:4px 6px;
+            border:0;
+            border-radius:5px;
+            background:transparent;
+            color:#ddd;
+        }
+
+        /* =========================
+           OVERLAY
+        ========================== */
+        #sidebar-overlay{
+            display:none;
+            position:fixed;
+            inset:0;
+            background:rgba(0,0,0,.55);
+            backdrop-filter:blur(2px);
+            z-index:25;
+        }
+
+        /* =========================
+           ÁREA PRINCIPAL
+        ========================== */
+        .app{
+            width:calc(100% - var(--sidebar-width));
+            height:100vh;
+            height:100dvh;
+            margin-left:var(--sidebar-width);
+            display:grid;
+            grid-template-rows:auto 1fr auto;
+            min-width:0;
+            background:var(--bg);
+            transition:width .22s ease,margin-left .22s ease;
+        }
+
+        #sidebar.closed ~ .app{
+            width:100%;
+            margin-left:0;
+        }
+
+        header{
+            min-height:56px;
+            padding:8px 14px;
+            display:flex;
+            align-items:center;
+            justify-content:space-between;
+            gap:10px;
+            background:linear-gradient(to bottom,rgba(33,33,33,.98),rgba(33,33,33,.90));
+            border:0;
+            position:relative;
+            z-index:10;
+        }
+
+        .brand{
+            display:flex;
+            align-items:center;
+            gap:9px;
+            min-width:0;
+        }
+
+        .logo{
+            width:30px;
+            height:30px;
+            display:grid;
+            place-items:center;
+            flex:none;
+            border-radius:9px;
+            background:#f1f1f1;
+            color:#171717;
+            font-weight:800;
+            font-size:14px;
+        }
+
+        .brand b{
+            font-size:15px;
+            font-weight:650;
+            letter-spacing:-.01em;
+        }
+
+        .sub{display:none}
+
+        #hamburger{
+            width:36px;
+            height:36px;
+            display:grid;
+            place-items:center;
+            padding:0;
+            color:#d8d8d8;
+            background:transparent;
+            border:0;
+            border-radius:8px;
+            font-size:19px;
+        }
+
+        #hamburger:hover{background:#2b2b2b}
+
+        .header-actions{
+            display:flex;
+            align-items:center;
+            gap:7px;
+            min-width:0;
+        }
+
+        #user-info{
+            display:flex;
+            align-items:center;
+            gap:7px;
+            max-width:210px;
+        }
+
+        #user-info img{
+            width:30px;
+            height:30px;
+            border-radius:50%;
+            object-fit:cover;
+        }
+
+        #user-name{
+            max-width:130px;
+            overflow:hidden;
+            text-overflow:ellipsis;
+            white-space:nowrap;
+            color:#d4d4d4;
+            font-size:12px;
+            font-weight:500;
+        }
+
+        #auth-button,#logout-button,#clear{
+            padding:8px 10px;
+            color:#d5d5d5;
+            background:transparent;
+            border:0;
+            border-radius:8px;
+            font-size:12px;
+        }
+
+        #auth-button:hover,#logout-button:hover,#clear:hover{background:#2c2c2c}
+
+        /* =========================
+           CHAT
+        ========================== */
+        #chat{
+            overflow-y:auto;
+            overflow-x:hidden;
+            scroll-behavior:smooth;
+            padding:20px 18px 150px;
+            scrollbar-width:thin;
+            scrollbar-color:#4a4a4a transparent;
+        }
+
+        .empty{
+            width:min(100%,680px);
+            margin:18vh auto 0;
+            text-align:center;
+        }
+
+        .empty h2{
+            margin:0 0 11px;
+            color:#f1f1f1;
+            font-size:30px;
+            line-height:1.15;
+            letter-spacing:-.035em;
+            font-weight:650;
+        }
+
+        .empty p{
+            margin:0 auto;
+            max-width:550px;
+            color:#9c9c9c;
+            line-height:1.55;
+            font-size:14px;
+        }
+
+        .suggestions{
+            display:grid;
+            grid-template-columns:repeat(2,minmax(0,1fr));
+            gap:9px;
+            width:min(100%,620px);
+            margin:25px auto 0;
+        }
+
+        .suggestions button{
+            min-height:64px;
+            padding:12px 14px;
+            color:#d8d8d8;
+            background:#262626;
+            border:1px solid #353535;
+            border-radius:14px;
+            text-align:left;
+            line-height:1.35;
+            font-size:13px;
+        }
+
+        .suggestions button:hover{
+            background:#2d2d2d;
+            border-color:#454545;
+        }
+
+        .message{
+            width:min(100%,var(--content-width));
+            margin:0 auto;
+            padding:13px 0;
+            display:flex;
+            align-items:flex-start;
+            gap:13px;
+        }
+
+        .message.user{
+            justify-content:flex-end;
+            padding-left:54px;
+        }
+
+        .avatar{
+            width:29px;
+            height:29px;
+            flex:none;
+            display:grid;
+            place-items:center;
+            margin-top:2px;
+            border-radius:8px;
+            background:#ececec;
+            color:#1b1b1b;
+            font-size:12px;
+            font-weight:800;
+        }
+
+        .message.user .avatar{display:none}
+
+        .bubble{
+            max-width:calc(100% - 45px);
+            padding:0;
+            color:var(--text);
+            background:transparent;
+            border:0;
+            border-radius:0;
+            overflow-wrap:anywhere;
+            line-height:1.65;
+            font-size:15px;
+        }
+
+        .message.user .bubble{
+            max-width:min(82%,620px);
+            padding:10px 15px;
+            color:#f0f0f0;
+            background:#303030;
+            border-radius:18px;
+            white-space:pre-wrap;
+            line-height:1.5;
+        }
+
+        /* Markdown */
+        .markdown-body p{margin:0 0 12px}
+        .markdown-body p:last-child{margin-bottom:0}
+        .markdown-body h1,.markdown-body h2,.markdown-body h3,.markdown-body h4{
+            margin:20px 0 9px;
+            line-height:1.25;
+            color:#f2f2f2;
+        }
+        .markdown-body h1:first-child,.markdown-body h2:first-child,.markdown-body h3:first-child{margin-top:0}
+        .markdown-body h1{font-size:1.55em}
+        .markdown-body h2{font-size:1.32em}
+        .markdown-body h3{font-size:1.15em}
+        .markdown-body ul,.markdown-body ol{margin:8px 0 13px 24px;padding:0}
+        .markdown-body li{margin:5px 0}
+        .markdown-body strong{font-weight:700;color:#fff}
+        .markdown-body em{font-style:italic}
+        .markdown-body blockquote{
+            margin:12px 0;
+            padding:3px 0 3px 13px;
+            border-left:3px solid #666;
+            color:#c8c8c8;
+        }
+        .markdown-body code{
+            padding:2px 5px;
+            color:#f0f0f0;
+            background:#151515;
+            border:1px solid #333;
+            border-radius:5px;
+            font-family:ui-monospace,SFMono-Regular,Consolas,"Liberation Mono",monospace;
+            font-size:.9em;
+        }
+        .markdown-body pre{
+            margin:14px 0;
+            padding:14px;
+            background:#151515;
+            border:1px solid #303030;
+            border-radius:10px;
+            overflow:auto;
+        }
+        .markdown-body pre code{
+            display:block;
+            padding:0;
+            background:none;
+            border:0;
+            white-space:pre;
+            overflow-wrap:normal;
+        }
+        .markdown-body a{
+            color:#9ac7ff;
+            text-decoration:underline;
+            text-underline-offset:2px;
+        }
+        .markdown-body hr{
+            margin:18px 0;
+            border:0;
+            border-top:1px solid #3a3a3a;
+        }
+        .markdown-body table{
+            width:100%;
+            margin:14px 0;
+            border-collapse:collapse;
+            display:block;
+            overflow-x:auto;
+        }
+        .markdown-body th,.markdown-body td{
+            padding:8px 10px;
+            border:1px solid #444;
+            text-align:left;
+        }
+        .markdown-body th{background:#292929}
+
+        .typing{
+            display:flex;
+            align-items:center;
+            gap:3px;
+            min-height:29px;
+        }
+
+        .typing span{
+            display:inline-block;
+            width:6px;
+            height:6px;
+            margin:0 1px;
+            border-radius:50%;
+            background:#a7a7a7;
+            animation:b .8s infinite;
+        }
+
+        .typing span:nth-child(2){animation-delay:.12s}
+        .typing span:nth-child(3){animation-delay:.24s}
+
+        @keyframes b{
+            50%{transform:translateY(-4px);opacity:.4}
+        }
+
+        /* =========================
+           COMPOSER
+        ========================== */
+        form{
+            position:relative;
+            padding:8px 18px 18px;
+            border:0;
+            background:
+                linear-gradient(to top,var(--bg) 70%,rgba(33,33,33,0));
+        }
+
+        .composer{
+            width:min(100%,var(--content-width));
+            min-height:54px;
+            margin:0 auto;
+            display:flex;
+            align-items:flex-end;
+            gap:8px;
+            padding:8px 8px 8px 13px;
+            background:#303030;
+            border:1px solid #3a3a3a;
+            border-radius:26px;
+            box-shadow:0 4px 20px rgba(0,0,0,.16);
+        }
+
+        textarea{
+            flex:1;
+            min-height:36px;
+            max-height:180px;
+            padding:8px 4px 7px;
+            resize:none;
+            outline:0;
+            border:0;
+            color:#ececec;
+            background:transparent;
+            line-height:1.4;
+            font-size:15px;
+        }
+
+        textarea::placeholder{color:#9a9a9a}
+
+        #send{
+            width:36px;
+            height:36px;
+            flex:none;
+            display:grid;
+            place-items:center;
+            padding:0;
+            color:#181818;
+            background:#f2f2f2;
+            border:0;
+            border-radius:50%;
+            font-size:21px;
+            font-weight:800;
+            line-height:1;
+            transition:transform .12s ease,background .12s ease;
+        }
+
+        #send:hover{
+            background:#fff;
+            transform:scale(1.03);
+        }
+
+        .status{
+            width:min(100%,var(--content-width));
+            margin:7px auto 0;
+            color:#777;
+            text-align:center;
+            font-size:10px;
+            line-height:1.25;
+        }
+
+        /* =========================
+           MOBILE
+        ========================== */
+        @media(max-width:768px){
+            #sidebar{
+                width:min(86vw,300px);
+                box-shadow:12px 0 35px rgba(0,0,0,.28);
+            }
+
+            #sidebar-overlay.show{display:block}
+
+            .app,
+            #sidebar.closed ~ .app{
+                width:100%;
+                margin-left:0;
+            }
+
+            header{padding:8px 10px}
+
+            .logo{display:none}
+
+            #user-name{display:none}
+
+            #chat{
+                padding:12px 14px 135px;
+            }
+
+            .empty{
+                margin-top:14vh;
+            }
+
+            .empty h2{font-size:27px}
+
+            .suggestions{
+                grid-template-columns:1fr;
+            }
+
+            .message{
+                padding:11px 0;
+            }
+
+            .message.user{
+                padding-left:38px;
+            }
+
+            .message.user .bubble{
+                max-width:90%;
+            }
+
+            form{
+                padding:7px 10px 11px;
+            }
+
+            .composer{
+                border-radius:24px;
+            }
+        }
+
+        @media(max-width:480px){
+            .brand b{font-size:14px}
+            #clear{display:none}
+            .empty p{font-size:13px}
+            .avatar{width:27px;height:27px}
+            .bubble{font-size:14.5px}
+        }
+    </style>
+
+</head>
+<body>
+    <div id="app-container">
+        <div id="sidebar-overlay"></div>
+
+        <aside id="sidebar">
+            <h3>CaiobaGPT</h3>
+            <button class="new-conv-btn" id="new-conv-btn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>
+                    <path d="m15 5 4 4"/>
+                </svg>
+                Nova Conversa
+            </button>
+            <p class="continue-text">Chats</p>
+            <ul class="conv-list" id="conv-list"></ul>
+            <div class="empty-sidebar" id="empty-sidebar">Nenhuma conversa ainda.</div>
+
+            <div class="settings-section">
+                <button class="settings-btn" id="settings-btn">⚙️ Como devemos nos chamar</button>
+                <div class="settings-panel" id="settings-panel" style="display:none;">
+                    <label>Como o CaiobaGPT deve chamar você?</label>
+                    <input type="text" id="user-call-name" placeholder="Ex: Caio, Caioba, senhor...">
+
+                    <label>Quais pronomes o CaiobaGPT deve usar para você?</label>
+                    <input type="text" id="user-pronoun" placeholder="Ex: ele/dele, ela/dela, elu/delu...">
+
+                    <label>Quais pronomes você prefere usar para o CaiobaGPT?</label>
+                    <input type="text" id="assistant-pronoun" placeholder="Ex: ele/dele, ela/dela, elu/delu...">
+
+                    <button class="settings-save" id="save-pronouns" type="button">Salvar preferências</button>
+                </div>
+            </div>
+        </aside>
+
+        <main class="app">
+            <header>
+                <div class="brand">
+                    <button id="hamburger" aria-label="Abrir menu">☰</button>
+                    <div class="logo">C</div>
+                    <div><b>CaiobaGPT</b><div class="sub">Assistente de IA</div></div>
+                </div>
+                <div class="header-actions">
+                    <div id="user-info"></div>
+                    <button id="clear">Limpar</button>
+                </div>
+            </header>
+            <section id="chat"></section>
+            <form id="form">
+                <div class="composer">
+                    <textarea id="input" rows="1" placeholder="Pergunte alguma coisa"></textarea>
+                    <button id="send" type="submit" aria-label="Enviar" title="Enviar">↑</button>
+                </div>
+                <div class="status" id="status">Histórico salvo neste navegador.</div>
+            </form>
+        </main>
+    </div>
+
+    <!-- Markdown para as respostas do CaiobaGPT -->
+    <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dompurify@3.2.4/dist/purify.min.js"></script>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+        import { getFirestore, doc, collection, setDoc, updateDoc, deleteDoc, getDoc, getDocs, query, orderBy, where, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyBAiXd7T_FsYW260mtO3UYFpCsxJpn4Gco",
+            authDomain: "caiobagpt-38f81.firebaseapp.com",
+            projectId: "caiobagpt-38f81",
+            storageBucket: "caiobagpt-38f81.firebasestorage.app",
+            messagingSenderId: "847377336410",
+            appId: "1:847377336410:web:d1149f5da6c84e3fcef063",
+            measurementId: "G-DDGEY2MQ1F"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        if (window.marked) {
+            window.marked.setOptions({
+                gfm: true,
+                breaks: true
+            });
+        }
+
+        const WORKER_URL = "https://caiobagpt.caiosartor01.workers.dev";
+        const chatEl = document.querySelector("#chat");
+        const form = document.querySelector("#form");
+        const input = document.querySelector("#input");
+        const statusEl = document.querySelector("#status");
+        const clearBtn = document.querySelector("#clear");
+        const hamburgerBtn = document.querySelector("#hamburger");
+        const sidebar = document.querySelector("#sidebar");
+        const sidebarOverlay = document.querySelector("#sidebar-overlay");
+        const newConvBtn = document.querySelector("#new-conv-btn");
+        const convListEl = document.querySelector("#conv-list");
+        const emptySidebarEl = document.querySelector("#empty-sidebar");
+        const userInfoEl = document.querySelector("#user-info");
+        const settingsBtn = document.querySelector("#settings-btn");
+        const settingsPanel = document.querySelector("#settings-panel");
+        const userCallNameInput = document.querySelector("#user-call-name");
+        const userPronounInput = document.querySelector("#user-pronoun");
+        const assistantPronounInput = document.querySelector("#assistant-pronoun");
+        const savePronounsBtn = document.querySelector("#save-pronouns");
+
+        let currentUser = null;
+        let currentConversationId = null;
+        let currentConversationMessages = [];
+        let conversationRef = null;
+        let isRenaming = false;
+        let settings = { userCallName: '', userPronoun: '', assistantPronoun: '' };
+
+        // PASSO 3.4 - cache local temporário para evitar ler o Firestore
+        // em toda mensagem. As memórias continuam armazenadas no Firebase.
+        let memoryCache = [];
+        let memoryCacheLoadedAt = 0;
+        const MEMORY_CACHE_MS = 5 * 60 * 1000;
+        const MAX_MEMORIES_FOR_AI = 20;
+
+        function formatDate(timestamp) {
+            if (!timestamp) return "";
+            const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+            return date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' });
+        }
+
+        function generateTitle(text) {
+            const cleanText = text.replace(/[.!?]+$/, '').trim();
+            return cleanText.length > 50 ? cleanText.slice(0, 50) + "..." : cleanText;
+        }
+
+        function showStatus(message) {
+            statusEl.textContent = message;
+        }
+
+        function toggleSidebar() {
+            const isClosed = sidebar.classList.contains('closed');
+            if (isClosed) {
+                sidebar.classList.remove('closed');
+                sidebarOverlay.classList.add('show');
+            } else {
+                sidebar.classList.add('closed');
+                sidebarOverlay.classList.remove('show');
+            }
+        }
+
+        function closeSidebar() {
+            sidebar.classList.add('closed');
+            sidebarOverlay.classList.remove('show');
+        }
+
+        function renderAuthUI(user) {
+            userInfoEl.innerHTML = "";
+            if (user) {
+                const photoURL = user.photoURL;
+                const displayName = user.displayName || "Usuário";
+                const nameSpan = document.createElement('span');
+                nameSpan.id = 'user-name';
+                nameSpan.textContent = displayName;
+                const img = document.createElement('img');
+                img.src = photoURL || '';
+                img.alt = 'Foto do usuário';
+                img.onerror = () => { img.style.display = 'none'; };
+                const logoutBtn = document.createElement('button');
+                logoutBtn.id = 'logout-button';
+                logoutBtn.textContent = 'Sair';
+                logoutBtn.onclick = async () => {
+                    try {
+                        await signOut(auth);
+                        showStatus('Você saiu da conta.');
+                    } catch (error) {
+                        console.error('Logout error:', error);
+                        showStatus('Erro ao sair.');
+                    }
+                };
+                userInfoEl.append(img, nameSpan, logoutBtn);
+            } else {
+                const loginBtn = document.createElement('button');
+                loginBtn.id = 'auth-button';
+                loginBtn.textContent = 'Entrar com Google';
+                loginBtn.onclick = async () => {
+                    const provider = new GoogleAuthProvider();
+                    try {
+                        await signInWithPopup(auth, provider);
+                        showStatus('Login realizado com sucesso.');
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        showStatus('Erro ao fazer login: ' + error.message);
+                    }
+                };
+                userInfoEl.appendChild(loginBtn);
+            }
+        }
+
+        async function loadSettings() {
+            const localKey = currentUser ? `caiobagpt_preferences_${currentUser.uid}` : 'caiobagpt_preferences_guest';
+
+            try {
+                const local = JSON.parse(localStorage.getItem(localKey) || '{}');
+                settings = {
+                    userCallName: local.userCallName || '',
+                    userPronoun: local.userPronoun || '',
+                    assistantPronoun: local.assistantPronoun || ''
+                };
+            } catch {
+                settings = { userCallName: '', userPronoun: '', assistantPronoun: '' };
+            }
+
+            if (currentUser) {
+                const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'pronouns');
+                try {
+                    const docSnap = await getDoc(settingsRef);
+                    if (docSnap.exists()) {
+                        const cloud = docSnap.data();
+                        settings = {
+                            userCallName: cloud.userCallName || cloud.displayName || settings.userCallName || '',
+                            userPronoun: cloud.userPronoun || settings.userPronoun || '',
+                            assistantPronoun: cloud.assistantPronoun || settings.assistantPronoun || ''
+                        };
+                        localStorage.setItem(localKey, JSON.stringify(settings));
+                    }
+                } catch (error) {
+                    console.warn('Não foi possível carregar preferências do Firestore. Usando cópia local.', error);
+                }
+            }
+
+            userCallNameInput.value = settings.userCallName || '';
+            userPronounInput.value = settings.userPronoun || '';
+            assistantPronounInput.value = settings.assistantPronoun || '';
+        }
+
+        async function saveSettings() {
+            const clean = (value, max = 60) => value.trim().replace(/\s+/g, ' ').slice(0, max);
+
+            const userCallName = clean(userCallNameInput.value);
+            const userPronoun = clean(userPronounInput.value);
+            const assistantPronoun = clean(assistantPronounInput.value);
+
+            settings = { userCallName, userPronoun, assistantPronoun };
+
+            const localKey = currentUser ? `caiobagpt_preferences_${currentUser.uid}` : 'caiobagpt_preferences_guest';
+            localStorage.setItem(localKey, JSON.stringify(settings));
+
+            if (!currentUser) {
+                showStatus('Preferências salvas neste navegador. Faça login para sincronizar na nuvem.');
+                return;
+            }
+
+            const settingsRef = doc(db, 'users', currentUser.uid, 'settings', 'pronouns');
+
+            try {
+                await setDoc(settingsRef, settings, { merge: true });
+                showStatus('Preferências salvas com sucesso.');
+            } catch (error) {
+                console.error('Erro ao salvar preferências no Firestore:', error);
+                showStatus('Preferências salvas neste navegador, mas não foi possível sincronizar com o Firestore.');
+            }
+        }
+
+        function escapeHtml(text) {
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
+        function renderMarkdown(text) {
+            const source = String(text ?? "");
+
+            // Se algum CDN estiver indisponível, o chat continua funcionando
+            // em texto puro em vez de quebrar a interface.
+            if (!window.marked || !window.DOMPurify) {
+                return escapeHtml(source).replace(/\n/g, "<br>");
+            }
+
+            const parsed = window.marked.parse(source, {
+                gfm: true,
+                breaks: true
+            });
+
+            // Nunca injeta HTML do modelo diretamente sem sanitizar.
+            return window.DOMPurify.sanitize(parsed, {
+                USE_PROFILES: { html: true }
+            });
+        }
+
+        function prepareMarkdownLinks(container) {
+            container.querySelectorAll("a").forEach(link => {
+                link.target = "_blank";
+                link.rel = "noopener noreferrer";
+            });
+        }
+
+        function renderChat() {
+            chatEl.innerHTML = "";
+            if (!currentConversationMessages.length) {
+                chatEl.innerHTML = '<div class="empty"><h2>Como posso ajudar?</h2><p>Converse com o CaiobaGPT, continue seus projetos ou faça uma pergunta.</p><div class="suggestions"><button>Me explica um assunto de um jeito simples</button><button>Me ajuda com um código</button><button>Vamos continuar um dos meus projetos</button><button>Me dê uma ideia criativa</button></div></div>';
+                const suggestionButtons = chatEl.querySelectorAll(".suggestions button");
+                suggestionButtons.forEach(btn => {
+                    btn.onclick = () => {
+                        input.value = btn.textContent;
+                        input.focus();
+                    };
+                });
+                return;
+            }
+            for (const m of currentConversationMessages) {
+                const row = document.createElement("div");
+                row.className = "message " + (m.role === "user" ? "user" : "assistant");
+                const avatar = document.createElement("div");
+                avatar.className = "avatar";
+                avatar.textContent = m.role === "user" ? "V" : "C";
+                const bubble = document.createElement("div");
+                bubble.className = "bubble";
+
+                if (m.role === "assistant") {
+                    bubble.classList.add("markdown-body");
+                    bubble.innerHTML = renderMarkdown(m.content);
+                    prepareMarkdownLinks(bubble);
+                } else {
+                    // Mensagens do usuário continuam como texto puro por segurança.
+                    bubble.textContent = m.content;
+                }
+
+                row.append(avatar, bubble);
+                chatEl.append(row);
+            }
+            chatEl.scrollTop = chatEl.scrollHeight;
+        }
+
+        function typingIndicator() {
+            const row = document.createElement("div");
+            row.id = "typing";
+            row.className = "message assistant";
+            row.innerHTML = '<div class="avatar">C</div><div class="bubble typing"><span></span><span></span><span></span></div>';
+            chatEl.append(row);
+            chatEl.scrollTop = chatEl.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            document.querySelector("#typing")?.remove();
+        }
+
+        async function loadConversations() {
+            if (!currentUser) {
+                convListEl.innerHTML = "";
+                emptySidebarEl.style.display = 'block';
+                return;
+            }
+            const uid = currentUser.uid;
+            const conversationsRef = collection(db, 'users', uid, 'conversations');
+            const q = query(conversationsRef, orderBy('updatedAt', 'desc'));
+            try {
+                const querySnapshot = await getDocs(q);
+                convListEl.innerHTML = "";
+                if (querySnapshot.empty) {
+                    emptySidebarEl.style.display = 'block';
+                } else {
+                    emptySidebarEl.style.display = 'none';
+                    querySnapshot.forEach((docSnap) => {
+                        const data = docSnap.data();
+                        const li = document.createElement('li');
+                        li.className = 'conv-item';
+                        li.dataset.id = docSnap.id;
+                        if (docSnap.id === currentConversationId) li.classList.add('active');
+
+                        const titleContainer = document.createElement('div');
+                        titleContainer.style.cssText = 'flex:1;min-width:0;cursor:pointer;';
+                        titleContainer.onclick = () => openConversation(docSnap.id);
+
+                        const titleSpan = document.createElement('div');
+                        titleSpan.className = 'conv-title';
+                        titleSpan.textContent = data.title || 'Sem título';
+
+                        const dateSpan = document.createElement('div');
+                        dateSpan.className = 'conv-date';
+                        dateSpan.textContent = formatDate(data.updatedAt);
+
+                        titleContainer.append(titleSpan, dateSpan);
+
+                        const actionsContainer = document.createElement('div');
+                        actionsContainer.className = 'conv-actions';
+
+                        const renameBtn = document.createElement('button');
+                        renameBtn.className = 'conv-rename';
+                        renameBtn.innerHTML = '✏️';
+                        renameBtn.title = 'Renomear conversa';
+                        renameBtn.onclick = (e) => {
+                            e.stopPropagation();
+                            startRename(docSnap.id, titleSpan, data.title);
+                        };
+
+                        const deleteBtn = document.createElement('button');
+                        deleteBtn.className = 'conv-delete';
+                        deleteBtn.innerHTML = '🗑';
+                        deleteBtn.title = 'Excluir conversa';
+                        deleteBtn.onclick = async (e) => {
+                            e.stopPropagation();
+                            if (confirm('Excluir esta conversa?')) {
+                                await deleteConversation(docSnap.id);
+                            }
+                        };
+
+                        actionsContainer.append(renameBtn, deleteBtn);
+                        li.append(titleContainer, actionsContainer);
+                        convListEl.appendChild(li);
+                    });
+                }
+            } catch (error) {
+                console.error('Erro ao carregar conversas:', error);
+                showStatus('Erro ao carregar histórico.');
+            }
+        }
+
+        function startRename(conversationId, titleElement, currentTitle) {
+            if (isRenaming) return;
+            isRenaming = true;
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'rename-input';
+            input.value = currentTitle;
+            input.placeholder = 'Novo título...';
+            const confirmBtn = document.createElement('button');
+            confirmBtn.className = 'rename-confirm';
+            confirmBtn.innerHTML = '✓';
+            confirmBtn.title = 'Confirmar';
+            const cancelBtn = document.createElement('button');
+            cancelBtn.className = 'rename-cancel';
+            cancelBtn.innerHTML = '✕';
+            cancelBtn.title = 'Cancelar';
+            const actionsContainer = document.createElement('div');
+            actionsContainer.className = 'rename-actions';
+            actionsContainer.append(confirmBtn, cancelBtn);
+            const parentContainer = titleElement.parentElement;
+            parentContainer.replaceChild(input, titleElement);
+            parentContainer.appendChild(actionsContainer);
+            input.focus();
+            input.select();
+            const confirmRename = async () => {
+                const newTitle = input.value.trim() || currentTitle;
+                await renameConversation(conversationId, newTitle);
+                isRenaming = false;
+                await loadConversations();
+            };
+            const cancelRename = () => {
+                isRenaming = false;
+                loadConversations();
+            };
+            confirmBtn.onclick = confirmRename;
+            cancelBtn.onclick = cancelRename;
+            input.onkeydown = (e) => {
+                if (e.key === 'Enter') confirmRename();
+                else if (e.key === 'Escape') cancelRename();
+            };
+        }
+
+        async function renameConversation(conversationId, newTitle) {
+            if (!currentUser) return;
+            const uid = currentUser.uid;
+            try {
+                await updateDoc(doc(db, 'users', uid, 'conversations', conversationId), { title: newTitle });
+                showStatus('Conversa renomeada.');
+            } catch (error) {
+                console.error('Erro ao renomear conversa:', error);
+                showStatus('Erro ao renomear conversa.');
+            }
+        }
+
+        async function openConversation(conversationId) {
+            if (!currentUser || isRenaming) return;
+            closeSidebar();
+            const uid = currentUser.uid;
+            const docRef = doc(db, 'users', uid, 'conversations', conversationId);
+            try {
+                const docSnap = await getDoc(docRef);
+                if (docSnap.exists()) {
+                    currentConversationId = conversationId;
+                    conversationRef = docRef;
+                    currentConversationMessages = docSnap.data().messages || [];
+                    renderChat();
+                    showStatus('Conversa carregada.');
+                    document.querySelectorAll('.conv-item').forEach(el => {
+                        el.classList.toggle('active', el.dataset.id === conversationId);
+                    });
+                } else {
+                    showStatus('Conversa não encontrada.');
+                }
+            } catch (error) {
+                console.error('Erro ao abrir conversa:', error);
+                showStatus('Erro ao abrir conversa.');
+            }
+        }
+
+        async function deleteConversation(conversationId) {
+            if (!currentUser) return;
+            const uid = currentUser.uid;
+            try {
+                await deleteDoc(doc(db, 'users', uid, 'conversations', conversationId));
+                if (conversationId === currentConversationId) {
+                    currentConversationId = null;
+                    conversationRef = null;
+                    currentConversationMessages = [];
+                    renderChat();
+                    showStatus('Conversa excluída.');
+                }
+                await loadConversations();
+            } catch (error) {
+                console.error('Erro ao excluir conversa:', error);
+                showStatus('Erro ao excluir conversa.');
+            }
+        }
+
+        function startNewConversation() {
+            currentConversationId = null;
+            conversationRef = null;
+            currentConversationMessages = [];
+            renderChat();
+            closeSidebar();
+            showStatus('Nova conversa iniciada.');
+            document.querySelectorAll('.conv-item').forEach(el => el.classList.remove('active'));
+        }
+
+        // ============================================================
+        // MEMÓRIA DE LONGO PRAZO - FIRESTORE
+        // ============================================================
+
+        const MEMORY_CATEGORIES = new Set([
+            "preference",
+            "project",
+            "interest",
+            "goal",
+            "personalization",
+            "other"
+        ]);
+
+        function normalizeMemoryText(value) {
+            return String(value || "")
+                .trim()
+                .replace(/\s+/g, " ")
+                .slice(0, 300);
+        }
+
+        function createMemoryKey(text) {
+            return normalizeMemoryText(text)
+                .toLocaleLowerCase("pt-BR")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^\p{L}\p{N}\s]/gu, "")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 300);
+        }
+
+        function containsSensitiveMemorySignal(text) {
+            const value = String(text || "").toLocaleLowerCase("pt-BR");
+
+            const blockedPatterns = [
+                /\bsenha\b/,
+                /\bpassword\b/,
+                /\bpin\b/,
+                /\btoken\b/,
+                /\bapi[\s_-]?key\b/,
+                /\bchave privada\b/,
+                /\bprivate key\b/,
+                /\bsecret key\b/,
+                /\bcart[aã]o de cr[eé]dito\b/,
+                /\bn[uú]mero do cart[aã]o\b/,
+                /\bcvv\b/,
+                /\bcpf\b/,
+                /\brg\b/,
+                /\bpassaporte\b/,
+                /\bendere[cç]o completo\b/,
+                /\bcoordenadas\b/
+            ];
+
+            return blockedPatterns.some(pattern => pattern.test(value));
+        }
+
+        function normalizeMemoryCandidate(candidate) {
+            if (!candidate || candidate.shouldSave !== true) return null;
+
+            const text = normalizeMemoryText(candidate.text);
+            if (!text || containsSensitiveMemorySignal(text)) return null;
+
+            const category = MEMORY_CATEGORIES.has(candidate.category)
+                ? candidate.category
+                : "other";
+
+            const rawImportance = Number(candidate.importance);
+            const importance = Number.isFinite(rawImportance)
+                ? Math.min(10, Math.max(1, Math.round(rawImportance)))
+                : 5;
+
+            const normalizedText = createMemoryKey(text);
+            if (!normalizedText) return null;
+
+            return {
+                text,
+                normalizedText,
+                category,
+                importance
+            };
+        }
+
+        async function saveMemoryCandidate(candidate) {
+            if (!currentUser) return { status: "ignored" };
+
+            const memory = normalizeMemoryCandidate(candidate);
+            if (!memory) return { status: "ignored" };
+
+            const memoriesRef = collection(
+                db,
+                "users",
+                currentUser.uid,
+                "memories"
+            );
+
+            try {
+                // Evita salvar a mesma memória várias vezes.
+                const duplicateQuery = query(
+                    memoriesRef,
+                    where("normalizedText", "==", memory.normalizedText)
+                );
+
+                const duplicateSnapshot = await getDocs(duplicateQuery);
+
+                if (!duplicateSnapshot.empty) {
+                    const existingDoc = duplicateSnapshot.docs[0];
+                    const existingData = existingDoc.data();
+
+                    await updateDoc(existingDoc.ref, {
+                        text: memory.text,
+                        category: memory.category,
+                        importance: Math.max(
+                            Number(existingData.importance) || 1,
+                            memory.importance
+                        ),
+                        updatedAt: serverTimestamp()
+                    });
+
+                    console.log("Memória existente atualizada:", memory);
+                    memoryCacheLoadedAt = 0;
+                    return { status: "updated", memory };
+                }
+
+                const memoryRef = doc(memoriesRef);
+
+                await setDoc(memoryRef, {
+                    id: memoryRef.id,
+                    text: memory.text,
+                    normalizedText: memory.normalizedText,
+                    category: memory.category,
+                    importance: memory.importance,
+                    createdAt: serverTimestamp(),
+                    updatedAt: serverTimestamp()
+                });
+
+                console.log("Nova memória salva no Firestore:", memory);
+                memoryCacheLoadedAt = 0;
+                return { status: "saved", memory };
+
+            } catch (error) {
+                console.error("Erro ao salvar memória no Firestore:", error);
+
+                // A memória nunca deve impedir a conversa de funcionar.
+                return {
+                    status: "error",
+                    error
+                };
+            }
+        }
+
+        async function loadMemoriesForAI(force = false) {
+            if (!currentUser) {
+                memoryCache = [];
+                memoryCacheLoadedAt = 0;
+                return [];
+            }
+
+            const cacheIsFresh =
+                !force &&
+                memoryCacheLoadedAt > 0 &&
+                (Date.now() - memoryCacheLoadedAt) < MEMORY_CACHE_MS;
+
+            if (cacheIsFresh) {
+                return memoryCache;
+            }
+
+            try {
+                const memoriesRef = collection(
+                    db,
+                    "users",
+                    currentUser.uid,
+                    "memories"
+                );
+
+                // Pega no máximo as 20 memórias mais importantes.
+                // Um único orderBy não exige índice composto.
+                const memoriesQuery = query(
+                    memoriesRef,
+                    orderBy("importance", "desc"),
+                    limit(MAX_MEMORIES_FOR_AI)
+                );
+
+                const snapshot = await getDocs(memoriesQuery);
+
+                memoryCache = snapshot.docs
+                    .map(docSnap => {
+                        const data = docSnap.data() || {};
+                        const text = normalizeMemoryText(data.text);
+
+                        if (!text || containsSensitiveMemorySignal(text)) {
+                            return null;
+                        }
+
+                        const importanceRaw = Number(data.importance);
+                        const importance = Number.isFinite(importanceRaw)
+                            ? Math.min(10, Math.max(1, Math.round(importanceRaw)))
+                            : 5;
+
+                        return {
+                            id: docSnap.id,
+                            text,
+                            category: MEMORY_CATEGORIES.has(data.category)
+                                ? data.category
+                                : "other",
+                            importance
+                        };
+                    })
+                    .filter(Boolean);
+
+                memoryCacheLoadedAt = Date.now();
+
+                console.log(
+                    `Passo 3.4: ${memoryCache.length} memória(s) carregada(s) do Firestore.`,
+                    memoryCache
+                );
+
+                return memoryCache;
+
+            } catch (error) {
+                console.error("Erro ao carregar memórias do Firestore:", error);
+
+                // Se a leitura falhar, a conversa continua normalmente.
+                return memoryCache;
+            }
+        }
+
+        async function sendMessage(text) {
+            text = text.trim();
+            if (!text) return;
+            if (!currentUser) {
+                showStatus('Faça login para enviar mensagens.');
+                alert('Você precisa estar logado para enviar mensagens e salvar conversas.');
+                return;
+            }
+            if (!currentConversationId) {
+                conversationRef = doc(collection(db, 'users', currentUser.uid, 'conversations'));
+                currentConversationMessages = [{ role: 'user', content: text }];
+            } else {
+                currentConversationMessages.push({ role: 'user', content: text });
+            }
+            renderChat();
+            input.value = "";
+            showStatus("CaiobaGPT está pensando...");
+            typingIndicator();
+            try {
+                // PASSO 3.4:
+                // Busca as memórias salvas e envia para o Worker.
+                const memoriesForAI = await loadMemoriesForAI();
+
+                const payload = {
+                    messages: currentConversationMessages,
+                    memories: memoriesForAI,
+                    preferences: {
+                        userCallName: settings.userCallName || null,
+                        userPronoun: settings.userPronoun || null,
+                        assistantPronoun: settings.assistantPronoun || null
+                    },
+                    userCallName: settings.userCallName || null,
+                    userPronoun: settings.userPronoun || null,
+                    assistantPronoun: settings.assistantPronoun || null,
+                    systemPrompt: [
+                        'Você é o CaiobaGPT.',
+                        settings.userCallName
+                            ? `Chame o usuário de "${settings.userCallName}" quando for natural.`
+                            : 'O usuário não informou uma forma especial de tratamento.',
+                        settings.userPronoun
+                            ? `Ao se referir ao usuário em terceira pessoa, use os pronomes "${settings.userPronoun}".`
+                            : 'O usuário não informou pronomes.',
+                        settings.assistantPronoun
+                            ? `Quando seus próprios pronomes forem relevantes, respeite a preferência "${settings.assistantPronoun}".`
+                            : 'Não há preferência de pronome para o CaiobaGPT.',
+                        'Não force nomes ou pronomes em toda frase. Use-os apenas quando forem linguisticamente necessários ou naturais.'
+                    ].join(' ')
+                };
+                const response = await fetch(WORKER_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+                if (!response.ok) throw new Error(data.error || "Erro na IA.");
+
+                removeTypingIndicator();
+
+                currentConversationMessages.push({
+                    role: 'assistant',
+                    content: data.response || "Não recebi uma resposta da IA."
+                });
+
+                renderChat();
+
+                // PASSO 3.3:
+                // Se o Worker detectou algo útil para lembrar,
+                // salva automaticamente na conta do usuário no Firestore.
+                const memoryResult = await saveMemoryCandidate(
+                    data.memoryCandidate
+                );
+                if (!currentConversationId) {
+                    const title = generateTitle(text);
+                    await setDoc(conversationRef, {
+                        id: conversationRef.id,
+                        title: title,
+                        messages: currentConversationMessages,
+                        createdAt: serverTimestamp(),
+                        updatedAt: serverTimestamp()
+                    });
+                    currentConversationId = conversationRef.id;
+                    if (memoryResult.status === "saved") {
+                        showStatus('Conversa salva • nova memória salva no Firestore.');
+                    } else if (memoryResult.status === "updated") {
+                        showStatus('Conversa salva • memória existente atualizada.');
+                    } else if (memoryResult.status === "error") {
+                        showStatus('Conversa salva • não foi possível salvar a memória.');
+                    } else {
+                        showStatus('Conversa salva no Firestore.');
+                    }
+                } else {
+                    await updateDoc(conversationRef, {
+                        messages: currentConversationMessages,
+                        updatedAt: serverTimestamp()
+                    });
+                    if (memoryResult.status === "saved") {
+                        showStatus('Conversa atualizada • nova memória salva no Firestore.');
+                    } else if (memoryResult.status === "updated") {
+                        showStatus('Conversa atualizada • memória existente atualizada.');
+                    } else if (memoryResult.status === "error") {
+                        showStatus('Conversa atualizada • não foi possível salvar a memória.');
+                    } else {
+                        showStatus('Conversa atualizada.');
+                    }
+                }
+                await loadConversations();
+            } catch (error) {
+                removeTypingIndicator();
+                if (currentConversationMessages.length > 0 && currentConversationMessages[currentConversationMessages.length - 1].role === 'user') {
+                    currentConversationMessages.pop();
+                }
+                renderChat();
+                showStatus("Erro ao conectar com a IA.");
+                alert("Não consegui falar com o CaiobaGPT: " + error.message);
+            }
+        }
+
+        form.onsubmit = (e) => {
+            e.preventDefault();
+            sendMessage(input.value);
+        };
+
+        input.onkeydown = (e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                form.requestSubmit();
+            }
+        };
+
+        clearBtn.onclick = () => {
+            if (currentConversationId || currentConversationMessages.length > 0) {
+                startNewConversation();
+            } else {
+                showStatus('O chat já está vazio.');
+            }
+        };
+
+        hamburgerBtn.onclick = () => toggleSidebar();
+        sidebarOverlay.onclick = () => closeSidebar();
+        newConvBtn.onclick = startNewConversation;
+
+        settingsBtn.onclick = () => {
+            const isVisible = settingsPanel.style.display !== 'none';
+            settingsPanel.style.display = isVisible ? 'none' : 'block';
+        };
+
+        // Mudança importante: usar addEventListener para o botão salvar
+        savePronounsBtn.addEventListener('click', saveSettings);
+
+        onAuthStateChanged(auth, async (user) => {
+            currentUser = user;
+            renderAuthUI(user);
+            if (user) {
+                showStatus('Bem-vindo, ' + (user.displayName || 'usuário') + '!');
+                await loadSettings();
+                await loadMemoriesForAI(true);
+                await loadConversations();
+            } else {
+                currentConversationId = null;
+                conversationRef = null;
+                currentConversationMessages = [];
+                settings = { userCallName: '', userPronoun: '', assistantPronoun: '' };
+                memoryCache = [];
+                memoryCacheLoadedAt = 0;
+                userCallNameInput.value = '';
+                userPronounInput.value = '';
+                assistantPronounInput.value = '';
+                renderChat();
+                convListEl.innerHTML = "";
+                emptySidebarEl.style.display = 'block';
+                showStatus('Você está deslogado. Faça login para salvar conversas.');
+            }
+        });
+
+        function init() {
+            if (window.innerWidth <= 768) {
+                sidebar.classList.add('closed');
+            }
+            renderChat();
+            renderAuthUI(null);
+            showStatus('Histórico salvo neste navegador (para salvar na nuvem, faça login).');
+        }
+
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                sidebar.classList.remove('closed');
+                sidebarOverlay.classList.remove('show');
+            } else {
+                if (!sidebar.classList.contains('closed')) {
+                    // mantém estado
+                } else {
+                    sidebar.classList.add('closed');
+                }
+            }
+        });
+
+        init();
+    </script>
+</body>
+</html>
